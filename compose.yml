@@ -1,0 +1,14 @@
+services:
+  postgresql:
+    image: docker.io/postgres:latest
+    container_name: postgresql
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgresql:/var/lib/postgresql/data
+volumes:
+  postgresql:
