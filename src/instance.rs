@@ -1,13 +1,13 @@
-use std::sync::Arc;
-
 use activitypub_federation::{
-    InstanceSettings, InstanceSettingsBuilderError, LocalInstance, UrlVerifier,
+    request_data::ApubContext, FederationSettings, FederationSettingsBuilderError, InstanceConfig,
+    UrlVerifier,
 };
 use async_trait::async_trait;
 use reqwest::Client;
+use std::sync::Arc;
 use url::Url;
 
-pub type InstanceHandle = Arc<Instance>;
+pub type DatabaseHandle = Arc<Database>;
 
 #[derive(Clone)]
 struct VerifyUrl();
@@ -20,22 +20,20 @@ impl UrlVerifier for VerifyUrl {
     }
 }
 
-pub struct Instance {
-    local_instance: LocalInstance,
-}
+#[derive(Clone)]
+pub struct Database();
 
-impl Instance {
-    pub fn new(host: String) -> Result<InstanceHandle, InstanceSettingsBuilderError> {
-        let settings = InstanceSettings::builder()
+impl Database {
+    pub fn new(
+        host: String,
+    ) -> Result<ApubContext<DatabaseHandle>, FederationSettingsBuilderError> {
+        let settings = FederationSettings::builder()
             .debug(cfg!(debug_assertions))
             .url_verifier(Box::new(VerifyUrl()))
             .build()?;
 
-        let local_instance = LocalInstance::new(host.clone(), Client::default().into(), settings);
-        Ok(Arc::new(Instance { local_instance }))
-    }
-
-    pub fn local_instance(&self) -> &LocalInstance {
-        &self.local_instance
+        let local_instance = InstanceConfig::new(host, Client::default().into(), settings);
+        let instance = Arc::new(Database());
+        Ok(ApubContext::new(instance, local_instance))
     }
 }
