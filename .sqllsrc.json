@@ -1,0 +1,8 @@
+{
+  "name": "wordforge",
+  "adapter": "postgres",
+  "host": "localhost",
+  "port": "${env:POSTGRES_PORT}",
+  "user": "${env:POSTGRES_USER}",
+  "password": "${env:POSTGRES_PASSWORD}"
+}
