@@ -1,1 +1,1 @@
-mod person;
+pub mod person;

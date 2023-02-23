@@ -7,14 +7,20 @@ edition = "2021"
 activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git", rev = "5a5c015", features = [
   "actix-web",
 ] }
+actix-session = { version = "0.7.2", features = [
+  "actix",
+  "rand",
+  "cookie-session",
+] }
 actix-web = "4.3.0"
 anyhow = "1.0.69"
 async-trait = "0.1.64"
 chrono = { version = "0.4.23", features = ["serde"] }
-diesel = { version = "2.0.3", features = ["postgres", "r2d2"] }
+diesel = { version = "2.0.3", features = ["postgres", "r2d2", "chrono", "url"] }
 diesel_migrations = { version = "2.0.0", features = ["postgres"] }
 dotenv = "0.15.0"
 env_logger = "0.10.0"
+log = "0.4.17"
 rand = { version = "0.8.5", features = ["serde"] }
 reqwest = "0.11.14"
 serde = { version = "1.0.152", features = ["derive"] }

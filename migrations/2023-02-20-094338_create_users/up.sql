@@ -1,15 +1,15 @@
-CREATE EXTENSION citext;
+create extension citext;
 
-CREATE TABLE
-  USERS (
-    id INT PRIMARY KEY,
-    preferred_username CITEXT UNIQUE NOT NULL,
-    NAME TEXT NOT NULL,
-    summary TEXT NOT NULL DEFAULT '',
-    inbox TEXT NOT NULL,
-    followers TEXT[] NOT NULL DEFAULT '{}' CHECK (ARRAY_POSITION(followers, NULL) IS NULL),
-    FOLLOWING TEXT[] NOT NULL DEFAULT '{}' CHECK (ARRAY_POSITION(FOLLOWING, NULL) IS NULL),
-    public_key TEXT NOT NULL,
-    private_key TEXT,
-    published TIMESTAMP NOT NULL
+create table
+  users (
+    id oid primary key,
+    preferred_username citext unique not null,
+    name text not null,
+    summary text not null default '',
+    followers text[] not null default '{}' check (array_position(followers, null) is null),
+    following text[] not null default '{}' check (array_position(following, null) is null),
+    public_key text not null,
+    private_key text,
+    published timestamptz not null,
+    email text not null
   );

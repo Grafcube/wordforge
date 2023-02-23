@@ -1,14 +1,18 @@
-mod handlers;
+use activitypub_federation::request_data::ApubMiddleware;
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::{
+    cookie::Key,
+    middleware::{self, Compress},
+    App, HttpServer,
+};
+use instance::Database;
+use std::io;
+
+mod api;
 mod instance;
 mod objects;
 mod schema;
 mod util;
-
-use activitypub_federation::request_data::ApubMiddleware;
-use actix_web::{middleware, web, App, HttpServer};
-use handlers::*;
-use instance::Database;
-use std::io;
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
@@ -21,15 +25,19 @@ async fn main() -> io::Result<()> {
     let data = Database::new(format!("{addr}:{port}"), db_url)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
+    log::info!("Starting server");
+    log::info!("Listening on http://{addr}:{port}");
+
     HttpServer::new(move || {
+        let session =
+            SessionMiddleware::builder(CookieSessionStore::default(), Key::generate()).build();
+
         App::new()
             .wrap(middleware::Logger::default())
-            .wrap(ApubMiddleware::new(data.clone()))
-            .service(
-                web::scope("/api/v1")
-                    .route("/", web::get().to(|| async { "ActivityPub Test" }))
-                    .service(account::create),
-            )
+            .wrap(session)
+            .wrap(Compress::default())
+            .wrap(ApubMiddleware::new(data))
+            .service(api::scope())
     })
     .bind(format!("{addr}:{port}"))?
     .run()

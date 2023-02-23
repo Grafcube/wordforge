@@ -1,3 +1,3 @@
-DROP TABLE USERS;
+drop table users;
 
-DROP EXTENSION citext;
+drop extension citext;

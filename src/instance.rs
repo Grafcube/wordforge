@@ -30,7 +30,7 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new(host: String, url: String) -> Result<ApubContext<DatabaseHandle>, anyhow::Error> {
+    pub fn new(host: String, url: String) -> anyhow::Result<ApubContext<DatabaseHandle>> {
         let settings = FederationSettings::builder()
             .debug(cfg!(debug_assertions))
             .url_verifier(Box::new(VerifyUrl()))
@@ -43,5 +43,9 @@ impl Database {
             pool: r2d2::Pool::builder().build(manager)?,
         });
         Ok(ApubContext::new(instance, local_instance))
+    }
+
+    pub fn get_pool(&self) -> &Pool {
+        &self.pool
     }
 }
