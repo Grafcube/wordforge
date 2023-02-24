@@ -2,7 +2,10 @@ use crate::{
     instance::DatabaseHandle, objects::person::User, schema::users::dsl::*, util::generate_id,
 };
 use activitypub_federation::{core::signatures::generate_actor_keypair, request_data::RequestData};
-use actix_web::{error::ErrorInternalServerError, post, web, HttpResponse};
+use actix_web::{
+    error::{ErrorBadRequest, ErrorInternalServerError},
+    post, web, HttpResponse,
+};
 use diesel::prelude::*;
 use serde::Deserialize;
 
@@ -23,7 +26,7 @@ async fn create(
         Ok(user) => Ok(HttpResponse::Ok().json(user)),
         Err(e) => Err(e),
     }
-    .map_err(ErrorInternalServerError)
+    .map_err(ErrorBadRequest)
 }
 
 fn create_account(info: NewUser, conn: &mut PgConnection) -> anyhow::Result<User> {
