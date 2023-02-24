@@ -3,8 +3,9 @@ use activitypub_federation::core::signatures::Keypair;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, Insertable, Queryable)]
+#[derive(Debug, Serialize, Deserialize, Insertable, Queryable, Validate)]
 #[diesel(table_name = users)]
 pub struct User {
     pub id: u32,
@@ -16,6 +17,7 @@ pub struct User {
     pub public_key: String,
     private_key: Option<String>,
     pub published: DateTime<Utc>,
+    #[validate(email)]
     pub email: String,
     // password: String, // TODO: Use some library to make this more secure
 }

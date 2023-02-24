@@ -8,11 +8,13 @@ use actix_web::{
 };
 use diesel::prelude::*;
 use serde::Deserialize;
+use validator::Validate;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 struct NewUser {
     display_name: String,
     username: String,
+    #[validate(email)]
     email: String,
 }
 
