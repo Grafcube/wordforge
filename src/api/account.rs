@@ -4,8 +4,9 @@ use crate::{
 use activitypub_federation::{core::signatures::generate_actor_keypair, request_data::RequestData};
 use actix_web::{error::ErrorInternalServerError, post, web, HttpResponse};
 use diesel::prelude::*;
+use serde::Deserialize;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 struct NewUser {
     display_name: String,
     username: String,
@@ -14,7 +15,7 @@ struct NewUser {
 
 #[post("/accounts")]
 async fn create(
-    pool: &RequestData<DatabaseHandle>,
+    pool: RequestData<DatabaseHandle>,
     info: web::Json<NewUser>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let mut conn = pool.get_pool().get().map_err(ErrorInternalServerError)?;

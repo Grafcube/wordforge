@@ -36,7 +36,7 @@ async fn main() -> io::Result<()> {
             .wrap(middleware::Logger::default())
             .wrap(session)
             .wrap(Compress::default())
-            .wrap(ApubMiddleware::new(data))
+            .wrap(ApubMiddleware::new(data.clone()))
             .service(api::scope())
     })
     .bind(format!("{addr}:{port}"))?

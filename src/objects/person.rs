@@ -43,11 +43,11 @@ impl User {
         }
     }
 
-    pub fn ap_id(&self, host: &str) -> &str {
-        format!("{}/objects/{}", host, &self.id).as_str()
+    pub fn ap_id(&self, host: String) -> String {
+        format!("{}/objects/{}", host, &self.id)
     }
 
-    pub fn inbox(&self, host: &str) -> &str {
-        format!("{}/inbox", &self.ap_id(host)).as_str()
+    pub fn inbox(&self, host: String) -> String {
+        format!("{}/inbox", &self.ap_id(host))
     }
 }
