@@ -8,9 +8,9 @@ use actix_web::{
 use instance::Database;
 use std::io;
 
+mod actors;
 mod api;
 mod instance;
-mod objects;
 mod schema;
 mod util;
 

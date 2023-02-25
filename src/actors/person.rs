@@ -46,7 +46,7 @@ impl User {
     }
 
     pub fn ap_id(&self, host: String) -> String {
-        format!("{}/objects/{}", host, &self.id)
+        format!("{}/actors/{}", host, &self.id)
     }
 
     pub fn inbox(&self, host: String) -> String {
