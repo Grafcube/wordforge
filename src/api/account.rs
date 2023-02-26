@@ -1,18 +1,14 @@
-use crate::{
-    instance::DatabaseHandle, objects::person::User, schema::users::dsl::*, util::generate_id,
-};
+use crate::{actors::person::User, instance::Database, util::USERNAME_RE};
 use activitypub_federation::{core::signatures::generate_actor_keypair, request_data::RequestData};
-use actix_web::{
-    error::{ErrorBadRequest, ErrorInternalServerError},
-    post, web, HttpResponse,
-};
-use diesel::prelude::*;
+use actix_web::{error::ErrorBadRequest, post, web, HttpResponse};
 use serde::Deserialize;
+use sqlx::{query_as, PgPool};
 use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
 struct NewUser {
     display_name: String,
+    #[validate(regex = "USERNAME_RE")]
     username: String,
     #[validate(email)]
     email: String,
@@ -20,34 +16,31 @@ struct NewUser {
 
 #[post("/accounts")]
 async fn create(
-    pool: RequestData<DatabaseHandle>,
+    pool: RequestData<Database>,
     info: web::Json<NewUser>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let mut conn = pool.get_pool().get().map_err(ErrorInternalServerError)?;
-    match create_account(info.into_inner(), &mut conn) {
+    match create_account(info.into_inner(), pool.get_pool()).await {
         Ok(user) => Ok(HttpResponse::Ok().json(user)),
         Err(e) => Err(e),
     }
     .map_err(ErrorBadRequest)
 }
 
-fn create_account(info: NewUser, conn: &mut PgConnection) -> anyhow::Result<User> {
-    let uid = loop {
-        let uid = generate_id();
-        break match users.filter(id.eq(uid)).select(id).first::<u32>(conn) {
-            Ok(_) => continue,
-            Err(_) => uid,
-        };
-    };
-    let user = User::new(
-        uid,
+async fn create_account(info: NewUser, conn: &PgPool) -> anyhow::Result<User> {
+    let keypair = generate_actor_keypair()?;
+
+    query_as!(
+        User,
+        "INSERT INTO users \
+        (preferred_username, name, public_key, private_key, email) \
+        VALUES ($1, $2, $3, $4, $5) RETURNING *",
         info.username,
         info.display_name,
-        info.email,
-        generate_actor_keypair()?,
-    );
-    diesel::insert_into(users)
-        .values(user)
-        .get_result(conn)
-        .map_err(anyhow::Error::new)
+        keypair.public_key,
+        keypair.private_key,
+        info.email
+    )
+    .fetch_one(conn)
+    .await
+    .map_err(anyhow::Error::new)
 }

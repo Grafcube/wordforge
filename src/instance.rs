@@ -2,16 +2,9 @@ use activitypub_federation::{
     request_data::ApubContext, FederationSettings, InstanceConfig, UrlVerifier,
 };
 use async_trait::async_trait;
-use diesel::{
-    r2d2::{self, ConnectionManager},
-    PgConnection,
-};
 use reqwest::Client;
-use std::sync::Arc;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use url::Url;
-
-pub type DatabaseHandle = Arc<Database>;
-type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Clone)]
 struct VerifyUrl();
@@ -26,26 +19,26 @@ impl UrlVerifier for VerifyUrl {
 
 #[derive(Clone)]
 pub struct Database {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl Database {
-    pub fn new(host: String, url: String) -> anyhow::Result<ApubContext<DatabaseHandle>> {
+    pub async fn new(host: String, url: String) -> anyhow::Result<ApubContext<Database>> {
         let settings = FederationSettings::builder()
             .debug(cfg!(debug_assertions))
             .url_verifier(Box::new(VerifyUrl()))
             .build()?;
 
-        let manager = ConnectionManager::<PgConnection>::new(url);
+        let pool = PgPoolOptions::new()
+            .max_connections(6)
+            .connect(url.as_str())
+            .await?;
 
         let local_instance = InstanceConfig::new(host, Client::default().into(), settings);
-        let instance = Arc::new(Self {
-            pool: r2d2::Pool::builder().build(manager)?,
-        });
-        Ok(ApubContext::new(instance, local_instance))
+        Ok(ApubContext::new(Self { pool }, local_instance))
     }
 
-    pub fn get_pool(&self) -> &Pool {
+    pub fn get_pool(&self) -> &PgPool {
         &self.pool
     }
 }

@@ -11,7 +11,6 @@ use std::io;
 mod actors;
 mod api;
 mod instance;
-mod schema;
 mod util;
 
 #[actix_web::main]
@@ -23,6 +22,7 @@ async fn main() -> io::Result<()> {
     let port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let data = Database::new(format!("{addr}:{port}"), db_url)
+        .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
     log::info!("Starting server");
