@@ -1,3 +1,3 @@
-# Wordforge ActivityPub Server
+# Wordforge ActivityPub
 
 TODO
