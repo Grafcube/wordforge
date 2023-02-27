@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="512"
+   height="512"
+   viewBox="0 0 512 512"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="favicon.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="px"
+     showgrid="false"
+     inkscape:zoom="1.0345459"
+     inkscape:cx="254.21782"
+     inkscape:cy="256.63434"
+     inkscape:window-width="1360"
+     inkscape:window-height="738"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2">
+    <rect
+       x="21.265369"
+       y="43.497345"
+       width="590.59729"
+       height="528.73439"
+       id="rect113" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <circle
+       style="fill:#ffffff"
+       id="path433"
+       cx="256"
+       cy="256"
+       r="256" />
+    <text
+       xml:space="preserve"
+       id="text111"
+       style="font-size:400px;white-space:pre;shape-inside:url(#rect113);fill:#000000"
+       transform="translate(34.797876,3.8664307)"><tspan
+         x="21.265625"
+         y="397.4043"
+         id="tspan521"><tspan
+           style="font-weight:bold;font-size:360px;-inkscape-font-specification:'sans-serif Bold'"
+           id="tspan519">W</tspan></tspan></text>
+  </g>
+</svg>

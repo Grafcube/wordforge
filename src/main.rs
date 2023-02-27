@@ -1,4 +1,5 @@
 use activitypub_federation::request_data::ApubMiddleware;
+use actix_files::Files;
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{
     cookie::Key,
@@ -38,6 +39,7 @@ async fn main() -> io::Result<()> {
             .wrap(Compress::default())
             .wrap(ApubMiddleware::new(data.clone()))
             .service(api::scope())
+            .service(Files::new("/", "./ui/dist").index_file("index.html"))
     })
     .bind(format!("{addr}:{port}"))?
     .run()

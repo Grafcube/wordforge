@@ -10,19 +10,5 @@ services:
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
     volumes:
       - postgresql:/var/lib/postgresql/data
-  pgadmin:
-    image: docker.io/dpage/pgadmin4:latest
-    container_name: pgadmin4
-    restart: always
-    ports:
-      - "5543:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    volumes:
-      - pgadmin:/var/lib/pgadmin
-    depends_on:
-      - postgresql
 volumes:
   postgresql:
-  pgadmin:
