@@ -1,7 +1,8 @@
-use crate::{actors::person::User, instance::Database, util::USERNAME_RE};
+use crate::{instance::Database, util::USERNAME_RE};
 use activitypub_federation::{core::signatures::generate_actor_keypair, request_data::RequestData};
 use actix_web::{error::ErrorBadRequest, post, web, HttpResponse};
-use serde::Deserialize;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use sqlx::{query_as, PgPool};
 use validator::Validate;
 
@@ -11,6 +12,15 @@ struct NewUser {
     #[validate(regex = "USERNAME_RE")]
     username: String,
     #[validate(email)]
+    email: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct InsertedUser {
+    id: i32,
+    preferred_username: String,
+    name: String,
+    published: DateTime<Utc>,
     email: String,
 }
 
@@ -26,14 +36,15 @@ async fn create(
     .map_err(ErrorBadRequest)
 }
 
-async fn create_account(info: NewUser, conn: &PgPool) -> anyhow::Result<User> {
+async fn create_account(info: NewUser, conn: &PgPool) -> anyhow::Result<InsertedUser> {
     let keypair = generate_actor_keypair()?;
 
     query_as!(
-        User,
+        InsertedUser,
         "INSERT INTO users \
         (preferred_username, name, public_key, private_key, email) \
-        VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        VALUES ($1, $2, $3, $4, $5) \
+        RETURNING id, preferred_username, name, published, email",
         info.username,
         info.display_name,
         keypair.public_key,

@@ -21,18 +21,28 @@
     const payload = JSON.stringify(data);
 
     if (isFormValid(data)) {
-      const response = await fetch("/api/v1/accounts", {
+      await fetch("/api/v1/accounts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: payload,
+      }).then(async (response) => {
+        if (response.ok) {
+          const data = JSON.stringify(await response.json());
+          feedback = {
+            color: "text-green-900",
+            message: `Account created\n${data}`,
+          };
+        } else {
+          feedback = {
+            color: "text-red-900",
+            message: `Error: ${response.status}\nMessage: ${
+              response.statusText
+            }\nPayload: ${await response.text()}`,
+          };
+        }
       });
-      const data = JSON.stringify(await response.json());
-      feedback = {
-        color: "text-green-900",
-        message: `Account created\n${data}`,
-      };
     } else {
       feedback = { color: "text-red-900", message: "Invalid input" };
     }
