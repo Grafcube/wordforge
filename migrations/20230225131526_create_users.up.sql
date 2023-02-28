@@ -12,5 +12,6 @@ create table
     private_key text,
     published timestamptz not null default now(),
     -- email citext not null
-    email text not null
+    email text not null,
+    password text not null
   );

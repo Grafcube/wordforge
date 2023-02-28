@@ -18,35 +18,9 @@ pub struct User {
     pub published: DateTime<Utc>,
     #[validate(email)]
     pub email: String,
-    // password: String, // TODO: Use some library to make this more secure
 }
 
 impl User {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        id: i32,
-        preferred_username: String,
-        name: String,
-        summary: String,
-        public_key: String,
-        private_key: Option<String>,
-        published: DateTime<Utc>,
-        email: String,
-    ) -> Self {
-        Self {
-            id,
-            preferred_username,
-            name,
-            summary,
-            followers: Vec::new(),
-            following: Vec::new(),
-            public_key,
-            private_key,
-            published,
-            email,
-        }
-    }
-
     pub fn ap_id(&self, host: String) -> String {
         format!("{}/actors/{}", host, &self.id)
     }

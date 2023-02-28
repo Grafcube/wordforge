@@ -8,9 +8,10 @@
   async function onSubmit(e: any) {
     const newAccount = new FormData(e.target);
 
-    function isFormValid(data: { [fieldName: string]: any }): boolean {
-      return Object.values(data).every(
-        (value) => value != null && value !== ""
+    function isFormValid(data: { [fieldName: string]: string }): boolean {
+      return (
+        Object.values(data).every((value) => value != null && value !== "") &&
+        data["password"].length >= 8
       );
     }
 
@@ -61,6 +62,7 @@
       id="display_name"
       name="display_name"
       value=""
+      required
     />
   </div>
   <div>
@@ -70,10 +72,28 @@
       id="username"
       name="username"
       value=""
+      required
     />
   </div>
   <div>
-    <input type="email" placeholder="Email" id="email" name="email" value="" />
+    <input
+      type="email"
+      placeholder="Email"
+      id="email"
+      name="email"
+      value=""
+      required
+    />
+  </div>
+  <div>
+    <input
+      type="password"
+      placeholder="Password (Minimum 8 characters)"
+      id="password"
+      name="password"
+      value=""
+      required
+    />
   </div>
   <div>
     <button type="submit">Create</button>

@@ -15,12 +15,14 @@ actix-session = { version = "0.7.2", features = [
 ] }
 actix-web = "4.3.0"
 anyhow = "1.0.69"
+argon2 = { version = "0.4.1", features = ["std"] }
 async-trait = "0.1.64"
 chrono = { version = "0.4.23", features = ["serde"] }
 dotenv = "0.15.0"
 env_logger = "0.10.0"
 lazy_static = "1.4.0"
 log = "0.4.17"
+rand_core = { version = "0.6.4", features = ["std"] }
 regex = "1.7.1"
 reqwest = "0.11.14"
 serde = { version = "1.0.152", features = ["derive"] }
