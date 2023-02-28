@@ -13,4 +13,5 @@ fn main() {
         .unwrap();
 
     println!("cargo:rerun-if-changed=ui");
+    println!("cargo:rerun-if-changed=build.rs");
 }

@@ -1,5 +1,5 @@
 [package]
-name = "activitypub-test"
+name = "wordforge"
 version = "0.1.0"
 edition = "2021"
 

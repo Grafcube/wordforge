@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Register from "./lib/Register.svelte";
+  import Register from "./Register.svelte";
 </script>
 
 <main>
@@ -10,4 +10,6 @@
   <div class="mx-auto text-2xl m-4 text-center">
     <Register />
   </div>
+
+  <a href="/about">About</a>
 </main>

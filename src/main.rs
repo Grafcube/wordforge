@@ -1,5 +1,5 @@
 use activitypub_federation::request_data::ApubMiddleware;
-use actix_files::Files;
+use actix_files::{Files, NamedFile};
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{
     cookie::Key,
@@ -19,7 +19,7 @@ async fn main() -> io::Result<()> {
     dotenv::dotenv().ok();
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let addr = std::env::var("SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let addr = std::env::var("SERVER_ADDR").unwrap_or_else(|_| "localhost".to_string());
     let port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let data = Database::new(format!("{addr}:{port}"), db_url)
@@ -39,7 +39,13 @@ async fn main() -> io::Result<()> {
             .wrap(Compress::default())
             .wrap(ApubMiddleware::new(data.clone()))
             .service(api::scope())
-            .service(Files::new("/", "./ui/dist").index_file("index.html"))
+            .service(
+                Files::new("/", "./ui/build")
+                    .index_file("index.html")
+                    .default_handler(
+                        NamedFile::open("./ui/build/index.html").expect("Index file should exist"),
+                    ),
+            )
     })
     .bind(format!("{addr}:{port}"))?
     .run()

@@ -3,7 +3,7 @@ use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+#[derive(Serialize, Deserialize, Validate)]
 pub struct User {
     pub id: i32,
     #[validate(regex(path = "USERNAME_RE", message = "Invalid username"))]
