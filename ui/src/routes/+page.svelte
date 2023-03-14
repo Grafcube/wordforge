@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Login from "./Login.svelte";
   import Register from "./Register.svelte";
 </script>
 
@@ -7,8 +8,11 @@
     <h1>Wordforge</h1>
   </div>
 
-  <div class="mx-auto text-2xl m-4 text-center">
+  <div
+    class="flex mx-auto text-2xl m-4 justify-center text-center place-content-center items-center"
+  >
     <Register />
+    <Login />
   </div>
 
   <a href="/about">About</a>

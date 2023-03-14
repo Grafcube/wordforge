@@ -19,10 +19,11 @@
     for (const [key, value] of newAccount.entries()) {
       data[key] = value;
     }
+    data["client_app"] = "Web";
     const payload = JSON.stringify(data);
 
     if (isFormValid(data)) {
-      await fetch("/api/v1/accounts", {
+      await fetch("/api/v1/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -30,11 +31,7 @@
         body: payload,
       }).then(async (response) => {
         if (response.ok) {
-          const data = JSON.stringify(await response.json());
-          feedback = {
-            color: "text-green-900",
-            message: `Account created\n${data}`,
-          };
+          location.href = "/dash";
         } else {
           feedback = {
             color: "text-red-900",
@@ -57,26 +54,6 @@
 >
   <div>
     <input
-      type="text"
-      placeholder="Display name"
-      id="display_name"
-      name="display_name"
-      value=""
-      required
-    />
-  </div>
-  <div>
-    <input
-      type="text"
-      placeholder="Username"
-      id="username"
-      name="username"
-      value=""
-      required
-    />
-  </div>
-  <div>
-    <input
       type="email"
       placeholder="Email"
       id="email"
@@ -88,7 +65,7 @@
   <div>
     <input
       type="password"
-      placeholder="Password (Minimum 8 characters)"
+      placeholder="Password"
       id="password"
       name="password"
       value=""
@@ -96,7 +73,7 @@
     />
   </div>
   <div>
-    <button type="submit">Create</button>
+    <button type="submit">Login</button>
   </div>
   {#if feedback.message != ""}
     <p class={feedback.color}>{feedback.message}</p>

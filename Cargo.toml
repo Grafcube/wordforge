@@ -7,13 +7,19 @@ edition = "2021"
 activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git", rev = "5a5c015", features = [
   "actix-web",
 ] }
+actix-cors = "0.6.4"
 actix-files = "0.6.2"
 actix-session = { version = "0.7.2", features = [
   "actix",
   "rand",
   "cookie-session",
 ] }
-actix-web = "4.3.0"
+actix-web = { version = "4.3.0", features = [
+  "openssl",
+  "secure-cookies",
+  "actix-tls",
+] }
+actix-web-grants = "3.0.1"
 anyhow = "1.0.69"
 argon2 = { version = "0.4.1", features = ["std"] }
 async-trait = "0.1.64"
@@ -22,6 +28,7 @@ dotenv = "0.15.0"
 env_logger = "0.10.0"
 lazy_static = "1.4.0"
 log = "0.4.17"
+openssl = { version = "0.10.45", features = ["v110"] }
 rand_core = { version = "0.6.4", features = ["std"] }
 regex = "1.7.1"
 reqwest = "0.11.14"

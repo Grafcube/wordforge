@@ -2,16 +2,16 @@ use activitypub_federation::request_data::ApubMiddleware;
 use actix_files::{Files, NamedFile};
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{
-    cookie::Key,
+    cookie::{Key, SameSite},
     middleware::{self, Compress},
     App, HttpServer,
 };
 use instance::Database;
-use std::io;
+use std::{env, io};
 
-mod actors;
 mod api;
 mod instance;
+mod objects;
 mod util;
 
 #[actix_web::main]
@@ -19,9 +19,9 @@ async fn main() -> io::Result<()> {
     dotenv::dotenv().ok();
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let addr = std::env::var("SERVER_ADDR").unwrap_or_else(|_| "localhost".to_string());
-    let port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
-    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is required");
+    let addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "localhost".to_string());
+    let port = env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let data = Database::new(format!("{addr}:{port}"), db_url)
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
@@ -30,8 +30,10 @@ async fn main() -> io::Result<()> {
     log::info!("Listening on http://{addr}:{port}");
 
     HttpServer::new(move || {
-        let session =
-            SessionMiddleware::builder(CookieSessionStore::default(), Key::generate()).build();
+        let session = SessionMiddleware::builder(CookieSessionStore::default(), Key::generate())
+            .cookie_secure(false) // TODO: Remove eventually
+            .cookie_same_site(SameSite::Strict)
+            .build();
 
         App::new()
             .wrap(middleware::Logger::default())

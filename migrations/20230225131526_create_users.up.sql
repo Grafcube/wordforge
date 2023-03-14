@@ -1,7 +1,9 @@
+create extension if not exists "uuid-ossp";
+
 -- create extension citext;
 create table
   users (
-    id serial primary key,
+    id uuid default uuid_generate_v4 () primary key,
     -- preferred_username citext unique not null,
     preferred_username text unique not null,
     name text not null,
@@ -11,7 +13,7 @@ create table
     public_key text not null,
     private_key text,
     published timestamptz not null default now(),
-    -- email citext not null
-    email text not null,
+    -- email citext unique not null
+    email text unique not null,
     password text not null
   );
