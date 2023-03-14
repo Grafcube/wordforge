@@ -1,6 +1,8 @@
 use activitypub_federation::request_data::ApubMiddleware;
 use actix_files::{Files, NamedFile};
-use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_session::{
+    config::CookieContentSecurity, storage::RedisActorSessionStore, SessionMiddleware,
+};
 use actix_web::{
     cookie::{Key, SameSite},
     middleware::{self, Compress},
@@ -24,6 +26,7 @@ async fn main() -> io::Result<()> {
 
     let addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "localhost".to_string());
     let port = env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
+    let redis_url = env::var("REDIS_URL").expect("REDIS_URL is required");
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let data = Database::new(format!("{addr}:{port}"), db_url)
         .await
@@ -33,10 +36,14 @@ async fn main() -> io::Result<()> {
     log::info!("Listening on http://{addr}:{port}");
 
     HttpServer::new(move || {
-        let session = SessionMiddleware::builder(CookieSessionStore::default(), Key::generate())
-            .cookie_secure(false) // TODO: Remove eventually
-            .cookie_same_site(SameSite::Strict)
-            .build();
+        let session = SessionMiddleware::builder(
+            RedisActorSessionStore::new(redis_url.clone()),
+            Key::generate(),
+        )
+        .cookie_secure(false) // TODO: Remove eventually
+        .cookie_content_security(CookieContentSecurity::Private)
+        .cookie_same_site(SameSite::Strict)
+        .build();
 
         App::new()
             .wrap(middleware::Logger::default())
