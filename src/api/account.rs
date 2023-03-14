@@ -129,7 +129,6 @@ async fn validate(
     let id = session
         .get::<Uuid>("id")?
         .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
-    log::debug!("{id:?}");
     let name = query!("SELECT name FROM users WHERE id=$1", id)
         .fetch_one(pool.get_pool())
         .await

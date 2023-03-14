@@ -17,6 +17,9 @@ mod util;
 #[actix_web::main]
 async fn main() -> io::Result<()> {
     dotenv::dotenv().ok();
+    #[cfg(debug_assertions)]
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("debug"));
+    #[cfg(not(debug_assertions))]
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "localhost".to_string());
