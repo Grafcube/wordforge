@@ -1,4 +1,5 @@
-use activitypub_federation::request_data::ApubMiddleware;
+use crate::instance::new_database;
+use activitypub_federation::config::ApubMiddleware;
 use actix_files::{Files, NamedFile};
 use actix_session::{
     config::CookieContentSecurity, storage::RedisActorSessionStore, SessionMiddleware,
@@ -8,7 +9,6 @@ use actix_web::{
     middleware::{self, Compress},
     App, HttpServer,
 };
-use instance::Database;
 use std::{env, io};
 
 mod api;
@@ -28,7 +28,7 @@ async fn main() -> io::Result<()> {
     let port = env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
     let redis_url = env::var("REDIS_URL").expect("REDIS_URL is required");
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
-    let data = Database::new(format!("{addr}:{port}"), db_url)
+    let config = new_database(format!("{addr}:{port}"), db_url)
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
@@ -49,7 +49,7 @@ async fn main() -> io::Result<()> {
             .wrap(middleware::Logger::default())
             .wrap(session)
             .wrap(Compress::default())
-            .wrap(ApubMiddleware::new(data.clone()))
+            .wrap(ApubMiddleware::new(config.clone()))
             .service(api::scope())
             .service(
                 Files::new("/", "./ui/build")

@@ -1,8 +1,5 @@
-use activitypub_federation::{
-    request_data::ApubContext, FederationSettings, InstanceConfig, UrlVerifier,
-};
+use activitypub_federation::config::{FederationConfig, UrlVerifier};
 use async_trait::async_trait;
-use reqwest::Client;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use url::Url;
 
@@ -17,28 +14,17 @@ impl UrlVerifier for VerifyUrl {
     }
 }
 
-#[derive(Clone)]
-pub struct Database {
-    pool: PgPool,
-}
+pub async fn new_database(host: String, url: String) -> anyhow::Result<FederationConfig<PgPool>> {
+    let pool = PgPoolOptions::new()
+        .max_connections(6)
+        .connect(url.as_str())
+        .await?;
 
-impl Database {
-    pub async fn new(host: String, url: String) -> anyhow::Result<ApubContext<Database>> {
-        let settings = FederationSettings::builder()
-            .debug(cfg!(debug_assertions))
-            .url_verifier(Box::new(VerifyUrl()))
-            .build()?;
-
-        let pool = PgPoolOptions::new()
-            .max_connections(6)
-            .connect(url.as_str())
-            .await?;
-
-        let local_instance = InstanceConfig::new(host, Client::default().into(), settings);
-        Ok(ApubContext::new(Self { pool }, local_instance))
-    }
-
-    pub fn get_pool(&self) -> &PgPool {
-        &self.pool
-    }
+    FederationConfig::builder()
+        .debug(cfg!(debug_assertions))
+        .domain(host)
+        .url_verifier(Box::new(VerifyUrl()))
+        .app_data(pool)
+        .build()
+        .map_err(anyhow::Error::new)
 }

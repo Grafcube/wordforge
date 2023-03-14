@@ -1,5 +1,5 @@
-use crate::{instance::Database, util::USERNAME_RE};
-use activitypub_federation::{core::signatures::generate_actor_keypair, request_data::RequestData};
+use crate::util::USERNAME_RE;
+use activitypub_federation::{config::RequestData, http_signatures::generate_actor_keypair};
 use actix_session::Session;
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
@@ -46,10 +46,10 @@ struct Login {
 
 #[post("/accounts")]
 async fn create(
-    pool: RequestData<Database>,
+    pool: RequestData<PgPool>,
     info: web::Json<NewUser>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    create_account(info.into_inner(), pool.get_pool())
+    create_account(info.into_inner(), pool.app_data())
         .await
         .map(|v| HttpResponse::Ok().json(v))
 }
@@ -84,11 +84,11 @@ async fn create_account(info: NewUser, conn: &PgPool) -> Result<InsertedUser, ac
 
 #[post("/login")]
 async fn login(
-    pool: RequestData<Database>,
+    pool: RequestData<PgPool>,
     info: web::Json<Login>,
     session: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
-    match verify_session(info.clone(), pool.get_pool()).await {
+    match verify_session(info.clone(), pool.app_data()).await {
         Ok(id) => {
             session.insert("id", id)?;
             session.insert("client_app", info.client_app.clone())?;
@@ -123,7 +123,7 @@ async fn verify_session(info: Login, conn: &PgPool) -> Result<Uuid, actix_web::E
 
 #[get("/validate")]
 async fn validate(
-    pool: RequestData<Database>,
+    pool: RequestData<PgPool>,
     session: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
     let id = session
@@ -131,7 +131,7 @@ async fn validate(
         .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
     session.renew();
     let name = query!("SELECT name FROM users WHERE id=$1", id)
-        .fetch_one(pool.get_pool())
+        .fetch_one(pool.app_data())
         .await
         .map_err(ErrorNotFound)?
         .name;
