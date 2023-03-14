@@ -1,14 +1,14 @@
 services:
   cache:
-    command: redis-server
+    command: redis-server /etc/redis/redis.conf
     container_name: redisserver
     image: docker.io/library/redis:latest
     ports:
       - "6379:6379"
     restart: always
     volumes:
-      - redis-data:/var/redis/data
-      - redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-data:/data
+      - $PWD/redis.conf:/etc/redis/redis.conf
   postgresql:
     container_name: postgresql
     environment:
@@ -22,4 +22,4 @@ services:
       - postgresql:/var/lib/postgresql/data
 volumes:
   postgresql:
-  redisserver:
+  redis-data:
