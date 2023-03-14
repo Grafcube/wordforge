@@ -26,14 +26,15 @@ async fn main() -> io::Result<()> {
 
     let addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "localhost".to_string());
     let port = env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
+    let host = format!("{addr}:{port}");
     let redis_url = env::var("REDIS_URL").expect("REDIS_URL is required");
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
-    let config = new_database(format!("{addr}:{port}"), db_url)
+    let config = new_database(host.clone(), db_url)
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
     log::info!("Starting server");
-    log::info!("Listening on http://{addr}:{port}");
+    log::info!("Listening on http://{host}");
 
     HttpServer::new(move || {
         let session = SessionMiddleware::builder(
@@ -59,7 +60,7 @@ async fn main() -> io::Result<()> {
                     ),
             )
     })
-    .bind(format!("{addr}:{port}"))?
+    .bind(host)?
     .run()
     .await
 }
