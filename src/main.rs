@@ -1,5 +1,5 @@
 use crate::instance::new_database;
-use activitypub_federation::config::ApubMiddleware;
+use activitypub_federation::config::FederationMiddleware;
 use actix_files::{Files, NamedFile};
 use actix_session::{
     config::CookieContentSecurity, storage::RedisActorSessionStore, SessionMiddleware,
@@ -50,7 +50,7 @@ async fn main() -> io::Result<()> {
             .wrap(middleware::Logger::default())
             .wrap(session)
             .wrap(Compress::default())
-            .wrap(ApubMiddleware::new(config.clone()))
+            .wrap(FederationMiddleware::new(config.clone()))
             .service(api::scope())
             .service(
                 Files::new("/", "./ui/build")

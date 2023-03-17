@@ -1,5 +1,5 @@
 use crate::util::USERNAME_RE;
-use activitypub_federation::{config::RequestData, http_signatures::generate_actor_keypair};
+use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_session::Session;
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
@@ -16,7 +16,7 @@ use validator::Validate;
 #[derive(Debug, Deserialize, Validate)]
 struct NewUser {
     display_name: String,
-    #[validate(regex = "USERNAME_RE")]
+    #[validate(regex(path = "USERNAME_RE", message = "Invalid username"))]
     username: String,
     #[validate(email)]
     email: String,
@@ -26,7 +26,7 @@ struct NewUser {
 
 #[derive(Serialize, Deserialize)]
 struct InsertedUser {
-    id: Uuid,
+    apub_id: String,
     preferred_username: String,
     name: String,
     published: DateTime<Utc>,
@@ -46,15 +46,30 @@ struct Login {
 
 #[post("/accounts")]
 async fn create(
-    pool: RequestData<PgPool>,
+    pool: Data<PgPool>,
     info: web::Json<NewUser>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    create_account(info.into_inner(), pool.app_data())
+    create_account(info.into_inner(), pool.domain(), pool.app_data())
         .await
         .map(|v| HttpResponse::Ok().json(v))
 }
 
-async fn create_account(info: NewUser, conn: &PgPool) -> Result<InsertedUser, actix_web::Error> {
+async fn create_account(
+    info: NewUser,
+    host: &str,
+    conn: &PgPool,
+) -> Result<InsertedUser, actix_web::Error> {
+    if query!(
+        "SELECT * FROM users WHERE lower(preferred_username)=$1",
+        info.username.to_lowercase()
+    )
+    .fetch_one(conn)
+    .await
+    .is_ok()
+    {
+        return Err(ErrorBadRequest("Username already exists"));
+    }
+
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let password = argon2
@@ -62,16 +77,20 @@ async fn create_account(info: NewUser, conn: &PgPool) -> Result<InsertedUser, ac
         .map_err(ErrorInternalServerError)?
         .to_string();
 
+    let id = Uuid::new_v4();
     let keypair = generate_actor_keypair()?;
 
     query_as!(
         InsertedUser,
         "INSERT INTO users \
-        (preferred_username, name, public_key, private_key, email, password) \
-        VALUES ($1, $2, $3, $4, $5, $6) \
-        RETURNING id, preferred_username, name, published, email",
+        (apub_id, preferred_username, name, inbox, outbox, public_key, private_key, email, password) \
+        VALUES (lower($1), $2, $3, $4, $5, $6, $7, $8, $9) \
+        RETURNING apub_id, preferred_username, name, published, email",
+        format!("{}/objects/{}", host, id),
         info.username,
         info.display_name,
+        format!("{}/inbox", host),
+        format!("{}/outbox", host),
         keypair.public_key,
         keypair.private_key,
         info.email,
@@ -84,7 +103,7 @@ async fn create_account(info: NewUser, conn: &PgPool) -> Result<InsertedUser, ac
 
 #[post("/login")]
 async fn login(
-    pool: RequestData<PgPool>,
+    pool: Data<PgPool>,
     info: web::Json<Login>,
     session: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
@@ -99,16 +118,10 @@ async fn login(
     }
 }
 
-async fn verify_session(info: Login, conn: &PgPool) -> Result<Uuid, actix_web::Error> {
-    struct UserInfo {
-        pub id: Uuid,
-        pub password: String,
-    }
-
-    let res = query_as!(
-        UserInfo,
-        "SELECT id, password FROM users WHERE email=$1",
-        info.email
+async fn verify_session(info: Login, conn: &PgPool) -> Result<String, actix_web::Error> {
+    let res = query!(
+        "SELECT apub_id, password FROM users WHERE lower(email)=$1",
+        info.email.to_lowercase()
     )
     .fetch_one(conn)
     .await
@@ -116,21 +129,18 @@ async fn verify_session(info: Login, conn: &PgPool) -> Result<Uuid, actix_web::E
     let password_hash = PasswordHash::new(&res.password).map_err(ErrorInternalServerError)?;
 
     match Argon2::default().verify_password(info.password.as_bytes(), &password_hash) {
-        Ok(_) => Ok(res.id),
+        Ok(_) => Ok(res.apub_id),
         Err(e) => Err(ErrorUnauthorized(e)),
     }
 }
 
 #[get("/validate")]
-async fn validate(
-    pool: RequestData<PgPool>,
-    session: Session,
-) -> Result<HttpResponse, actix_web::Error> {
+async fn validate(pool: Data<PgPool>, session: Session) -> Result<HttpResponse, actix_web::Error> {
     let id = session
-        .get::<Uuid>("id")?
+        .get::<String>("id")?
         .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
     session.renew();
-    let name = query!("SELECT name FROM users WHERE id=$1", id)
+    let name = query!("SELECT name FROM users WHERE apub_id=$1", id)
         .fetch_one(pool.app_data())
         .await
         .map_err(ErrorNotFound)?
