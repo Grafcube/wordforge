@@ -51,6 +51,7 @@ async fn main() -> io::Result<()> {
             .wrap(session)
             .wrap(Compress::default())
             .wrap(FederationMiddleware::new(config.clone()))
+            .route("/user/{name}", api::users())
             .service(api::scope())
             .service(
                 Files::new("/", "./ui/build")

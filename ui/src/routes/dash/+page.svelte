@@ -1,5 +1,5 @@
 <script lang="ts">
-  async function get_name() {
+  async function getName() {
     const res = await fetch("/api/v1/validate");
     const text = await res.text();
     if (res.ok) {
@@ -9,7 +9,7 @@
     }
   }
 
-  let promise = get_name();
+  let promise = getName();
 </script>
 
 <h1

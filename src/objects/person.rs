@@ -9,24 +9,24 @@ use activitypub_federation::{
 use async_trait::async_trait;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
-use sqlx::{query, PgPool};
+use sqlx::{query_as, PgPool};
 use url::Url;
 use validator::Validate;
 
 #[derive(Serialize, Deserialize, Validate)]
 pub struct User {
-    pub apub_id: ObjectId<User>,
+    pub apub_id: String,
     #[validate(regex(path = "USERNAME_RE", message = "Invalid username"))]
     pub preferred_username: String,
     pub name: String,
     pub summary: String,
-    pub inbox: Url,
-    pub outbox: Url,
+    pub inbox: String,
+    pub outbox: String,
     pub public_key: String,
     #[serde(skip_serializing)]
     private_key: Option<String>,
     pub published: DateTime<Utc>,
-    last_refresh: NaiveDateTime,
+    pub last_refresh: NaiveDateTime,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -44,6 +44,23 @@ pub struct Person {
     published: String,
 }
 
+impl User {
+    pub async fn read_from_username(
+        username: &str,
+        data: &PgPool,
+    ) -> Result<Option<Self>, sqlx::Error> {
+        query_as!(
+            Self,
+            "SELECT apub_id, preferred_username, name, summary, inbox, outbox, \
+            public_key, null as private_key, published, last_refresh \
+            FROM users WHERE preferred_username=$1",
+            username.to_lowercase()
+        )
+        .fetch_optional(data)
+        .await
+    }
+}
+
 #[async_trait]
 impl Object for User {
     type DataType = PgPool;
@@ -58,40 +75,27 @@ impl Object for User {
         object_id: Url,
         data: &Data<Self::DataType>,
     ) -> Result<Option<Self>, Self::Error> {
-        let user = query!(
-            "SELECT * FROM users WHERE apub_id=$1",
+        query_as!(
+            Self,
+            "SELECT apub_id, preferred_username, name, summary, inbox, outbox, \
+            public_key, private_key, published, last_refresh \
+            FROM users WHERE apub_id=$1",
             object_id.to_string().to_lowercase()
         )
         .fetch_optional(data.app_data())
         .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-
-        match user {
-            None => Ok(None),
-            Some(user) => Ok(Some(Self {
-                apub_id: Url::parse(user.apub_id.as_str()).unwrap().into(),
-                preferred_username: user.preferred_username,
-                name: user.name,
-                summary: user.summary,
-                inbox: Url::parse(user.outbox.as_str()).unwrap(),
-                outbox: Url::parse(user.outbox.as_str()).unwrap(),
-                public_key: user.public_key,
-                private_key: user.private_key,
-                published: user.published,
-                last_refresh: user.last_refresh,
-            })),
-        }
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
     }
 
     async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
         Ok(Self::Kind {
-            id: self.apub_id.clone(),
+            id: self.apub_id.parse().unwrap(),
             kind: Default::default(),
             preferred_username: self.preferred_username.clone(),
             name: self.name.clone(),
             summary: self.summary.clone(),
-            inbox: self.inbox.clone(),
-            outbox: self.outbox.clone(),
+            inbox: self.inbox.parse().unwrap(),
+            outbox: self.outbox.parse().unwrap(),
             public_key: self.public_key(),
             published: self.published.to_rfc3339_opts(SecondsFormat::Millis, true),
         })
@@ -112,12 +116,12 @@ impl Object for User {
         _data: &Data<Self::DataType>,
     ) -> Result<Self, Self::Error> {
         Ok(Self {
-            apub_id: json.id,
+            apub_id: json.id.into_inner().into(),
             preferred_username: json.preferred_username,
             name: json.name,
             summary: json.summary,
-            inbox: json.inbox,
-            outbox: json.outbox,
+            inbox: json.inbox.into(),
+            outbox: json.outbox.into(),
             public_key: json.public_key.public_key_pem,
             private_key: None,
             published: json
@@ -131,11 +135,11 @@ impl Object for User {
 
 impl Actor for User {
     fn id(&self) -> Url {
-        self.apub_id.inner().clone()
+        self.apub_id.parse().unwrap()
     }
 
     fn inbox(&self) -> Url {
-        self.inbox.clone()
+        self.inbox.parse().unwrap()
     }
 
     fn public_key_pem(&self) -> &str {
