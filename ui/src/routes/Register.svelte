@@ -1,5 +1,5 @@
 <script lang="ts">
-  let feedback = { color: "black", message: "" };
+  export let feedback = { color: "black", message: "" };
 
   function resetFeedback(_: any) {
     feedback = { color: "black", message: "" };
@@ -30,11 +30,19 @@
         body: payload,
       }).then(async (response) => {
         if (response.ok) {
-          const data = JSON.stringify(await response.json());
-          feedback = {
-            color: "text-green-900",
-            message: `Account created\n${data}`,
-          };
+          const payload = JSON.stringify({
+            email: data.email,
+            password: data.password,
+            client_app: "Web",
+          });
+          await fetch("/api/v1/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: payload,
+          });
+          location.href = "/dash";
         } else {
           feedback = {
             color: "text-red-900",
@@ -98,7 +106,4 @@
   <div>
     <button type="submit">Create</button>
   </div>
-  {#if feedback.message != ""}
-    <p class={feedback.color}>{feedback.message}</p>
-  {/if}
 </form>

@@ -1,4 +1,4 @@
-use crate::instance::new_database;
+use crate::instance::{new_database, webfinger};
 use activitypub_federation::config::FederationMiddleware;
 use actix_files::{Files, NamedFile};
 use actix_session::{
@@ -52,6 +52,7 @@ async fn main() -> io::Result<()> {
             .wrap(Compress::default())
             .wrap(FederationMiddleware::new(config.clone()))
             .route("/user/{name}", api::users())
+            .service(webfinger)
             .service(api::scope())
             .service(
                 Files::new("/", "./ui/build")

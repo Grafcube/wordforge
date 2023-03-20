@@ -10,7 +10,6 @@ use chrono::{DateTime, Utc};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, PgPool};
-use uuid::Uuid;
 use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
@@ -76,8 +75,6 @@ async fn create_account(
         .hash_password(info.password.into_bytes().as_slice(), &salt)
         .map_err(ErrorInternalServerError)?
         .to_string();
-
-    let id = Uuid::new_v4();
     let keypair = generate_actor_keypair()?;
 
     query_as!(
@@ -86,11 +83,11 @@ async fn create_account(
         (apub_id, preferred_username, name, inbox, outbox, public_key, private_key, email, password) \
         VALUES (lower($1), $2, $3, $4, $5, $6, $7, $8, $9) \
         RETURNING apub_id, preferred_username, name, published, email",
-        format!("{}/objects/{}", host, id),
+        format!("{}/user/{}", host, info.username.to_lowercase()),
         info.username,
         info.display_name,
-        format!("{}/user/{}/inbox", host, info.username),
-        format!("{}/user/{}/outbox", host, info.username),
+        format!("{}/user/{}/inbox", host, info.username.to_lowercase()),
+        format!("{}/user/{}/outbox", host, info.username.to_lowercase()),
         keypair.public_key,
         keypair.private_key,
         info.email,

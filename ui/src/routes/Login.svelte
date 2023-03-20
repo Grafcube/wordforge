@@ -1,5 +1,5 @@
 <script lang="ts">
-  let feedback = { color: "black", message: "" };
+  export let feedback: any = { color: "black", message: "" };
 
   function resetFeedback(_: any) {
     feedback = { color: "black", message: "" };
@@ -75,7 +75,4 @@
   <div>
     <button type="submit">Login</button>
   </div>
-  {#if feedback.message != ""}
-    <p class={feedback.color}>{feedback.message}</p>
-  {/if}
 </form>

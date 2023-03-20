@@ -1,6 +1,8 @@
 <script lang="ts">
   import Login from "./Login.svelte";
   import Register from "./Register.svelte";
+
+  $: feedback = { message: "", color: "black" };
 </script>
 
 <main>
@@ -11,8 +13,13 @@
   <div
     class="flex mx-auto text-2xl m-4 justify-center text-center place-content-center items-center"
   >
-    <Register />
-    <Login />
+    <Register bind:feedback />
+    <Login bind:feedback />
+  </div>
+  <div class="flex mx-auto text-2xl m-4 justify-center text-center">
+    {#if feedback.message != ""}
+      <p class={feedback.color}>{feedback.message}</p>
+    {/if}
   </div>
 
   <a href="/about">About</a>
