@@ -3427,7 +3427,6 @@ dependencies = [
  "env_logger",
  "lazy_static",
  "log",
- "openssl",
  "rand_core",
  "regex",
  "serde",

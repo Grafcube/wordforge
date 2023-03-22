@@ -27,7 +27,6 @@ dotenv = "0.15.0"
 env_logger = "0.10.0"
 lazy_static = "1.4.0"
 log = "0.4.17"
-openssl = { version = "0.10.45", features = ["v110"] }
 rand_core = { version = "0.6.4", features = ["std"] }
 regex = "1.7.1"
 serde = { version = "1.0.152", features = ["derive"] }

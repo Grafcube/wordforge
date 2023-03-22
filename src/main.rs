@@ -2,10 +2,12 @@ use crate::instance::{new_database, webfinger};
 use activitypub_federation::config::FederationMiddleware;
 use actix_files::{Files, NamedFile};
 use actix_session::{
-    config::CookieContentSecurity, storage::RedisActorSessionStore, SessionMiddleware,
+    config::{CookieContentSecurity, PersistentSession},
+    storage::RedisActorSessionStore,
+    SessionMiddleware,
 };
 use actix_web::{
-    cookie::{Key, SameSite},
+    cookie::{time::Duration, Key, SameSite},
     middleware::{self, Compress},
     App, HttpServer,
 };
@@ -32,19 +34,19 @@ async fn main() -> io::Result<()> {
     let config = new_database(host.clone(), db_url)
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let key = Key::from(include_bytes!("cookie.key")); // TODO: Better way to do this
 
     log::info!("Starting server");
     log::info!("Listening on http://{host}");
 
     HttpServer::new(move || {
-        let session = SessionMiddleware::builder(
-            RedisActorSessionStore::new(redis_url.clone()),
-            Key::generate(),
-        )
-        .cookie_secure(false) // TODO: Remove eventually
-        .cookie_content_security(CookieContentSecurity::Private)
-        .cookie_same_site(SameSite::Strict)
-        .build();
+        let session =
+            SessionMiddleware::builder(RedisActorSessionStore::new(redis_url.clone()), key.clone())
+                .session_lifecycle(PersistentSession::default().session_ttl(Duration::days(7)))
+                .cookie_content_security(CookieContentSecurity::Private)
+                .cookie_same_site(SameSite::Strict)
+                .cookie_secure(cfg!(not(debug_assertions)))
+                .build();
 
         App::new()
             .wrap(middleware::Logger::default())
