@@ -21,6 +21,8 @@
       <p class={feedback.color}>{feedback.message}</p>
     {/if}
   </div>
-
-  <a href="/about">About</a>
 </main>
+
+<footer>
+  <a href="/about" class="fixed inset-x-0 bottom-0">About</a>
+</footer>

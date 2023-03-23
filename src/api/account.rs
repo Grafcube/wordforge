@@ -58,6 +58,7 @@ async fn create_account(
     host: &str,
     conn: &PgPool,
 ) -> Result<InsertedUser, actix_web::Error> {
+    info.validate().map_err(ErrorBadRequest)?;
     if query!(
         "SELECT * FROM users WHERE lower(preferred_username)=$1",
         info.username.to_lowercase()
@@ -116,6 +117,7 @@ async fn login(
 }
 
 async fn verify_session(info: Login, conn: &PgPool) -> Result<String, actix_web::Error> {
+    info.validate().map_err(ErrorBadRequest)?;
     let res = query!(
         "SELECT apub_id, password FROM users WHERE lower(email)=$1",
         info.email.to_lowercase()
