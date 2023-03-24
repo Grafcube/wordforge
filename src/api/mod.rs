@@ -2,6 +2,7 @@ use activitypub_federation::FEDERATION_CONTENT_TYPE;
 use actix_web::{guard, web, Route, Scope};
 
 pub mod account;
+pub mod book;
 pub mod user;
 
 pub fn scope() -> Scope {
@@ -9,6 +10,7 @@ pub fn scope() -> Scope {
         .service(account::create)
         .service(account::login)
         .service(account::validate)
+        .service(book::new_book)
 }
 
 pub fn users() -> Route {
