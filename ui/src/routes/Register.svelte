@@ -67,7 +67,6 @@
     <input
       type="text"
       placeholder="Display name"
-      id="display_name"
       name="display_name"
       value=""
       required
@@ -77,33 +76,24 @@
     <input
       type="text"
       placeholder="Username"
-      id="username"
       name="username"
       value=""
       required
     />
   </div>
   <div>
-    <input
-      type="email"
-      placeholder="Email"
-      id="email"
-      name="email"
-      value=""
-      required
-    />
+    <input type="email" placeholder="Email" name="email" value="" required />
   </div>
   <div>
     <input
       type="password"
       placeholder="Password (Minimum 8 characters)"
-      id="password"
       name="password"
       value=""
       required
     />
   </div>
   <div>
-    <button type="submit">Create</button>
+    <button class="button-1" type="submit">Create</button>
   </div>
 </form>

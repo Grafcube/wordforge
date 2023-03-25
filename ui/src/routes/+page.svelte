@@ -5,7 +5,7 @@
   $: feedback = { message: "", color: "black" };
 </script>
 
-<main>
+<body class="main-screen">
   <div class="mx-auto text-7xl text-center">
     <h1>Wordforge</h1>
   </div>
@@ -21,8 +21,6 @@
       <p class={feedback.color}>{feedback.message}</p>
     {/if}
   </div>
-</main>
 
-<footer>
-  <a href="/about" class="fixed inset-x-0 bottom-0">About</a>
-</footer>
+  <a href="/about" class="absolute bottom-0">About</a>
+</body>

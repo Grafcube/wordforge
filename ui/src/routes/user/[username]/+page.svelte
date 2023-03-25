@@ -17,7 +17,7 @@
   let promise = getUser();
 </script>
 
-<div>
+<div class="main-screen">
   {#await promise}
     <div>Loading...</div>
   {:then data}

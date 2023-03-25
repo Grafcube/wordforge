@@ -53,26 +53,18 @@
   class="space-y-4 p-4"
 >
   <div>
-    <input
-      type="email"
-      placeholder="Email"
-      id="email"
-      name="email"
-      value=""
-      required
-    />
+    <input type="email" placeholder="Email" name="email" value="" required />
   </div>
   <div>
     <input
       type="password"
       placeholder="Password"
-      id="password"
       name="password"
       value=""
       required
     />
   </div>
   <div>
-    <button type="submit">Login</button>
+    <button class="button-1" type="submit">Login</button>
   </div>
 </form>
