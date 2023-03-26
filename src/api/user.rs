@@ -9,7 +9,7 @@ use sqlx::PgPool;
 pub async fn get_user(
     pool: Data<PgPool>,
     username: web::Path<String>,
-) -> Result<HttpResponse, actix_web::Error> {
+) -> actix_web::Result<HttpResponse> {
     let user = User::read_from_username(username.into_inner().as_str(), pool.app_data())
         .await
         .map_err(ErrorInternalServerError)?

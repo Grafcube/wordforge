@@ -44,10 +44,7 @@ struct Login {
 }
 
 #[post("/accounts")]
-async fn create(
-    pool: Data<PgPool>,
-    info: web::Json<NewUser>,
-) -> Result<HttpResponse, actix_web::Error> {
+async fn create(pool: Data<PgPool>, info: web::Json<NewUser>) -> actix_web::Result<HttpResponse> {
     create_account(info.into_inner(), pool.domain(), pool.app_data())
         .await
         .map(|v| HttpResponse::Ok().json(v))
@@ -57,7 +54,7 @@ async fn create_account(
     info: NewUser,
     host: &str,
     conn: &PgPool,
-) -> Result<InsertedUser, actix_web::Error> {
+) -> actix_web::Result<InsertedUser> {
     info.validate().map_err(ErrorBadRequest)?;
     if query!(
         "SELECT * FROM users WHERE lower(preferred_username)=$1",
@@ -104,7 +101,7 @@ async fn login(
     pool: Data<PgPool>,
     info: web::Json<Login>,
     session: Session,
-) -> Result<HttpResponse, actix_web::Error> {
+) -> actix_web::Result<HttpResponse> {
     match verify_session(info.clone(), pool.app_data()).await {
         Ok(id) => {
             session.insert("id", id)?;
@@ -116,7 +113,7 @@ async fn login(
     }
 }
 
-async fn verify_session(info: Login, conn: &PgPool) -> Result<String, actix_web::Error> {
+async fn verify_session(info: Login, conn: &PgPool) -> actix_web::Result<String> {
     info.validate().map_err(ErrorBadRequest)?;
     let res = query!(
         "SELECT apub_id, password FROM users WHERE lower(email)=$1",
@@ -134,7 +131,7 @@ async fn verify_session(info: Login, conn: &PgPool) -> Result<String, actix_web:
 }
 
 #[get("/validate")]
-async fn validate(pool: Data<PgPool>, session: Session) -> Result<HttpResponse, actix_web::Error> {
+async fn validate(pool: Data<PgPool>, session: Session) -> actix_web::Result<HttpResponse> {
     let id = session
         .get::<String>("id")?
         .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
