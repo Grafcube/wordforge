@@ -1,3 +1,3 @@
-drop table book;
+drop table novel;
 
 drop table author_roles;

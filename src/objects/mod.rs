@@ -1,2 +1,2 @@
-pub mod book;
+pub mod novel;
 pub mod person;

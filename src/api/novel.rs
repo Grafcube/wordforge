@@ -1,4 +1,4 @@
-use crate::objects::book::{Genres, ReadingDirection, Roles};
+use crate::objects::novel::{Genres, ReadingDirection, Roles};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_session::Session;
 use actix_web::{
@@ -10,7 +10,7 @@ use sqlx::{query, PgPool};
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
-struct NewBook {
+struct NewNovel {
     title: String,
     summary: String,
     // collaborators: Vec<Url>,
@@ -20,9 +20,9 @@ struct NewBook {
     reading_direction: ReadingDirection,
 }
 
-#[post("/book")]
-async fn new_book(
-    info: web::Json<NewBook>,
+#[post("/novel")]
+async fn new_novel(
+    info: web::Json<NewNovel>,
     data: Data<PgPool>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
@@ -30,16 +30,16 @@ async fn new_book(
         .get::<String>("id")?
         .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
     session.renew();
-    match create_book(info.into_inner(), apub_id, data.app_data()).await {
+    match create_novel(info.into_inner(), apub_id, data.app_data()).await {
         Ok(id) => Ok(HttpResponse::Ok().body(id.to_string())),
         Err(e) => Err(e),
     }
 }
 
-async fn create_book(info: NewBook, apub_id: String, conn: &PgPool) -> actix_web::Result<Uuid> {
+async fn create_novel(info: NewNovel, apub_id: String, conn: &PgPool) -> actix_web::Result<Uuid> {
     let keypair = generate_actor_keypair()?;
     let id = query!(
-        "INSERT INTO book \
+        "INSERT INTO novel \
         (title, summary, authors, genre, tags, reading_direction, public_key, private_key) \
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) \
         RETURNING id",

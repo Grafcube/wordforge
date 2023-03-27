@@ -65,7 +65,7 @@ pub struct Author {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Book {
+pub struct Novel {
     id: Uuid,
     title: String,
     summary: String,
