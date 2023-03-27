@@ -23,6 +23,7 @@ export const Genres = [
   "ScienceFiction",
   "Sports",
   "Superhero",
+  "Thriller",
   "Western",
   "Other",
 ];

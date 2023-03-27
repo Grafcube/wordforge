@@ -38,7 +38,7 @@ async fn new_novel(
 async fn create_novel(info: NewNovel, apub_id: String, conn: &PgPool) -> actix_web::Result<Uuid> {
     let keypair = generate_actor_keypair()?;
     let id = query!(
-        "INSERT INTO novel \
+        "INSERT INTO novels \
         (title, summary, authors, genre, tags, public_key, private_key) \
         VALUES ($1, $2, $3, $4, $5, $6, $7) \
         RETURNING id",

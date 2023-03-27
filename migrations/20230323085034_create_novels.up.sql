@@ -1,7 +1,7 @@
 create extension if not exists "uuid-ossp";
 
 create table
-  novel (
+  novels (
     id uuid default uuid_generate_v4 () primary key,
     title text not null,
     summary text not null default '',

@@ -47,6 +47,7 @@ pub enum Genres {
     ScienceFiction,
     Sports,
     Superhero,
+    Thriller,
     Western,
     Other,
 }
