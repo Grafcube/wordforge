@@ -2,7 +2,7 @@
   import Login from "./Login.svelte";
   import Register from "./Register.svelte";
 
-  $: feedback = { message: "", color: "black" };
+  let feedback = "";
 </script>
 
 <body class="main-screen">
@@ -17,8 +17,8 @@
     <Login bind:feedback />
   </div>
   <div class="flex mx-auto text-2xl m-4 justify-center text-center">
-    {#if feedback.message != ""}
-      <p class={feedback.color}>{feedback.message}</p>
+    {#if feedback != ""}
+      <p class="text-red-900">{feedback}</p>
     {/if}
   </div>
 

@@ -5,6 +5,7 @@ use actix_web::{
     error::{ErrorInternalServerError, ErrorUnauthorized},
     post, web, HttpResponse,
 };
+use itertools::{sorted, Itertools};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, PgPool};
 use uuid::Uuid;
@@ -36,17 +37,21 @@ async fn new_novel(
 }
 
 async fn create_novel(info: NewNovel, apub_id: String, conn: &PgPool) -> actix_web::Result<Uuid> {
+    let title = info.title.replace('\n', " ");
+    let tags: Vec<String> = sorted(info.tags)
+        .dedup_by(|a, b| a.to_lowercase() == b.to_lowercase())
+        .collect();
     let keypair = generate_actor_keypair()?;
     let id = query!(
         "INSERT INTO novels \
         (title, summary, authors, genre, tags, public_key, private_key) \
         VALUES ($1, $2, $3, $4, $5, $6, $7) \
         RETURNING id",
-        info.title,
-        info.summary,
+        title.trim(),
+        info.summary.trim(),
         &[apub_id.clone(),],
         info.genre.to_string(),
-        info.tags.as_slice(),
+        tags.as_slice(),
         keypair.public_key,
         keypair.private_key
     )

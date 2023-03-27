@@ -1,9 +1,5 @@
 <script lang="ts">
-  export let feedback = { color: "black", message: "" };
-
-  function resetFeedback(_: any) {
-    feedback = { color: "black", message: "" };
-  }
+  export let feedback = "";
 
   async function onSubmit(e: any) {
     const newAccount = new FormData(e.target);
@@ -44,27 +40,25 @@
           });
           location.href = "/dash";
         } else {
-          feedback = {
-            color: "text-red-900",
-            message: `Error: ${response.status}\nMessage: ${
-              response.statusText
-            }\nPayload: ${await response.text()}`,
-          };
+          feedback = `Error: ${response.status}\nMessage: ${
+            response.statusText
+          }\nPayload: ${await response.text()}`;
         }
       });
     } else {
-      feedback = { color: "text-red-900", message: "Invalid input" };
+      feedback = "Invalid input";
     }
   }
 </script>
 
 <form
   on:submit|preventDefault={onSubmit}
-  on:input={resetFeedback}
+  on:input={() => (feedback = "")}
   class="space-y-4 p-4"
 >
   <div>
     <input
+      class="basic-input"
       type="text"
       placeholder="Display name"
       name="display_name"
@@ -74,6 +68,7 @@
   </div>
   <div>
     <input
+      class="basic-input"
       type="text"
       placeholder="Username"
       name="username"
@@ -82,10 +77,18 @@
     />
   </div>
   <div>
-    <input type="email" placeholder="Email" name="email" value="" required />
+    <input
+      class="basic-input"
+      type="email"
+      placeholder="Email"
+      name="email"
+      value=""
+      required
+    />
   </div>
   <div>
     <input
+      class="basic-input"
       type="password"
       placeholder="Password (Minimum 8 characters)"
       name="password"
