@@ -51,13 +51,6 @@ pub enum Genres {
     Other,
 }
 
-#[derive(Display, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ReadingDirection {
-    Ltr,
-    Rtl,
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Author {
     apub_id: String,
@@ -72,7 +65,6 @@ pub struct Novel {
     authors: Vec<Author>,
     genre: Genres,
     tags: Vec<String>,
-    reading_direction: ReadingDirection,
     pub public_key: String,
     #[serde(skip_serializing)]
     private_key: Option<String>,

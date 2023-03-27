@@ -1,4 +1,4 @@
-use crate::objects::novel::{Genres, ReadingDirection, Roles};
+use crate::objects::novel::{Genres, Roles};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_session::Session;
 use actix_web::{
@@ -17,7 +17,6 @@ struct NewNovel {
     genre: Genres,
     role: Roles,
     tags: Vec<String>,
-    reading_direction: ReadingDirection,
 }
 
 #[post("/novel")]
@@ -40,15 +39,14 @@ async fn create_novel(info: NewNovel, apub_id: String, conn: &PgPool) -> actix_w
     let keypair = generate_actor_keypair()?;
     let id = query!(
         "INSERT INTO novel \
-        (title, summary, authors, genre, tags, reading_direction, public_key, private_key) \
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) \
+        (title, summary, authors, genre, tags, public_key, private_key) \
+        VALUES ($1, $2, $3, $4, $5, $6, $7) \
         RETURNING id",
         info.title,
         info.summary,
         &[apub_id.clone(),],
         info.genre.to_string(),
         info.tags.as_slice(),
-        info.reading_direction.to_string(),
         keypair.public_key,
         keypair.private_key
     )
