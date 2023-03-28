@@ -48,6 +48,7 @@
         {placeholder}
         id="search"
         name="search"
+        autocomplete="off"
         bind:value={term}
         on:input={() => (itemList = itemFilter(term))}
       />
