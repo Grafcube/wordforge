@@ -1,7 +1,7 @@
 <script lang="ts">
   export let items: string[];
   export let selectedItem = "Select item"; // Initial text
-  export let placeholder = "Search";
+  export let placeholder = "Filter";
 
   import {
     Listbox,
@@ -16,11 +16,16 @@
   let term = "";
   let itemList = items;
   const itemFilter = (term: string) => {
+    term = term.toLowerCase();
     return term == ""
       ? items
       : items
           .filter((e) => e.toLowerCase().includes(term)) // Filter by search term
-          .sort((a, b) => a.indexOf(term) - b.indexOf(term)); // Sort by appearance of search term
+          .sort(
+            // Sort by appearance of search term
+            (a, b) =>
+              a.toLowerCase().indexOf(term) - b.toLowerCase().indexOf(term)
+          );
   };
 </script>
 
@@ -46,8 +51,7 @@
         class="dark:bg-gray-600 m-2 p-2 rounded-xl text-sl w-fit"
         type="search"
         {placeholder}
-        id="search"
-        name="search"
+        name="filter"
         autocomplete="off"
         bind:value={term}
         on:input={() => (itemList = itemFilter(term))}
@@ -55,8 +59,13 @@
       <div class="overflow-y-auto max-h-80 p-2 text-lg">
         {#each itemList as item}
           <ListboxOption
-            class={({ active }) =>
-              active ? `${optionStyle} bg-gray-800` : optionStyle}
+            class={({ active, selected }) => {
+              if (active) {
+                return `${optionStyle} bg-gray-800`;
+              } else if (selected) {
+                return `${optionStyle} bg-gray-900`;
+              } else return optionStyle;
+            }}
             value={item}>{item}</ListboxOption
           >
         {/each}
