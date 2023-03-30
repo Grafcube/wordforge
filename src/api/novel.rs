@@ -19,7 +19,7 @@ struct NewNovel {
     genre: Genres,
     role: Roles,
     lang: String,
-    cw: Option<String>,
+    cw: bool,
     tags: Vec<String>,
 }
 
@@ -55,13 +55,6 @@ async fn create_novel(info: NewNovel, apub_id: String, conn: &PgPool) -> actix_w
         None => return Err(ErrorBadRequest("Invalid language")),
         Some(l) => l.to_639_1(),
     };
-    let cw = info.cw.map(|v| {
-        if v.trim().is_empty() {
-            "Sensitive content".to_string()
-        } else {
-            v.trim().to_string()
-        }
-    });
     let tags: Vec<String> = sorted(info.tags)
         .dedup_by(|a, b| a.to_lowercase() == b.to_lowercase())
         .collect();
@@ -77,7 +70,7 @@ async fn create_novel(info: NewNovel, apub_id: String, conn: &PgPool) -> actix_w
         info.genre.to_string(),
         tags.as_slice(),
         lang,
-        cw,
+        info.cw,
         keypair.public_key,
         keypair.private_key
     )

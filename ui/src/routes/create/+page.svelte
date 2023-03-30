@@ -43,7 +43,7 @@
     data["genre"] = selectedGenre.trim();
     data["role"] = selectedRole.trim();
     data["lang"] = selectedLang.trim();
-    data["cw"] = hasContentWarning ? data["cw"] : null;
+    data["cw"] = hasContentWarning;
     data["tags"] = data["tags"].split(",").map((i: string) => i.trim());
 
     await fetch("/api/v1/novel", {
@@ -131,25 +131,6 @@
         <ToggleSwitch
           bind:enabled={hasContentWarning}
           label="Content warning"
-        />
-      </div>
-      <div>
-        <textarea
-          class={"basic-input max-h-40 overflow-y-auto resize-none" +
-            (hasContentWarning ? "" : " hidden")}
-          placeholder="Content warning"
-          name="cw"
-          value=""
-          disabled={!hasContentWarning}
-          rows="1"
-          wrap="soft"
-          on:input={titleAreaInputHandler}
-          on:keydown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              document.getElementById("submit")?.focus();
-            }
-          }}
         />
       </div>
       <div>

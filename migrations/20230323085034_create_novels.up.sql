@@ -9,7 +9,7 @@ create table
     genre text not null,
     tags text[] not null,
     language text not null,
-    content_warning text,
+    content_warning boolean not null,
     followers text[] not null default '{}' check (array_position(followers, null) is null),
     following text[] not null default '{}' check (array_position(following, null) is null),
     public_key text not null,
