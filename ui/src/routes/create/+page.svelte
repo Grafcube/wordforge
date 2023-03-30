@@ -11,7 +11,7 @@
   let selectedGenre = defaultGenre;
   let selectedRole = defaultRole;
   let selectedLang = defaultLang;
-  let hasContentWarning = false;
+  let isSensitive = false;
   let feedback = "";
 
   const titleAreaInputHandler = (e: any) => {
@@ -43,7 +43,7 @@
     data["genre"] = selectedGenre.trim();
     data["role"] = selectedRole.trim();
     data["lang"] = selectedLang.trim();
-    data["cw"] = hasContentWarning;
+    data["sensitive"] = isSensitive;
     data["tags"] = data["tags"].split(",").map((i: string) => i.trim());
 
     await fetch("/api/v1/novel", {
@@ -54,8 +54,8 @@
       body: JSON.stringify(data),
     }).then(async (res) => {
       if (res.ok) {
-        const text = await res.text();
-        feedback = text;
+        const uuid = await res.text();
+        location.href = `/novel/${uuid}`;
       } else {
         feedback = `Error: ${res.status}\nMessage: ${
           res.statusText
@@ -128,10 +128,7 @@
         />
       </div>
       <div>
-        <ToggleSwitch
-          bind:enabled={hasContentWarning}
-          label="Content warning"
-        />
+        <ToggleSwitch bind:enabled={isSensitive} label="Content warning" />
       </div>
       <div>
         <button class="button-1" id="submit" type="submit">Create</button>

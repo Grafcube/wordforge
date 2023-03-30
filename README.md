@@ -38,7 +38,7 @@ using ActivityPub.
 - [ ] Books
   - [ ] Novels
     - [x] Creating books
-    - [ ] Set language
+    - [x] Set language
     - [ ] Editing and deleting
     - [ ] Federate books
   - [ ] Comic books

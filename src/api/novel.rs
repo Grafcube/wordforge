@@ -19,7 +19,7 @@ struct NewNovel {
     genre: Genres,
     role: Roles,
     lang: String,
-    cw: bool,
+    sensitive: bool,
     tags: Vec<String>,
 }
 
@@ -39,13 +39,18 @@ async fn new_novel(
         .get::<String>("id")?
         .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
     session.renew();
-    match create_novel(info.into_inner(), apub_id, data.app_data()).await {
-        Ok(id) => Ok(HttpResponse::Ok().body(id.to_string())),
+    match create_novel(info.into_inner(), data.domain(), apub_id, data.app_data()).await {
+        Ok(id) => Ok(HttpResponse::Ok().body(id)),
         Err(e) => Err(e),
     }
 }
 
-async fn create_novel(info: NewNovel, apub_id: String, conn: &PgPool) -> actix_web::Result<Uuid> {
+async fn create_novel(
+    info: NewNovel,
+    host: &str,
+    apub_id: String,
+    conn: &PgPool,
+) -> actix_web::Result<String> {
     let title = info
         .title
         .trim()
@@ -58,26 +63,33 @@ async fn create_novel(info: NewNovel, apub_id: String, conn: &PgPool) -> actix_w
     let tags: Vec<String> = sorted(info.tags)
         .dedup_by(|a, b| a.to_lowercase() == b.to_lowercase())
         .collect();
+    let uuid = Uuid::new_v4();
     let keypair = generate_actor_keypair()?;
+    let url = format!("{}/novel/{}", host, uuid.to_string().to_lowercase());
     let id = query!(
-        "INSERT INTO novels \
-        (title, summary, authors, genre, tags, language, content_warning, public_key, private_key) \
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) \
-        RETURNING id",
+        r#"INSERT INTO novels
+           (apub_id, preferred_username, title, summary, authors, genre, tags,
+           language, sensitive, inbox, outbox, public_key, private_key)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           RETURNING apub_id"#,
+        url,
+        uuid,
         title.trim(),
         info.summary.trim(),
         &[apub_id.clone(),],
         info.genre.to_string(),
         tags.as_slice(),
         lang,
-        info.cw,
+        info.sensitive,
+        format!("{}/inbox", url),
+        format!("{}/outbox", url),
         keypair.public_key,
         keypair.private_key
     )
     .fetch_one(conn)
     .await
     .map_err(ErrorInternalServerError)?
-    .id;
+    .apub_id;
 
     if info.role != Roles::None {
         query!(

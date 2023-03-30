@@ -51,9 +51,9 @@ impl User {
     ) -> Result<Option<Self>, sqlx::Error> {
         query_as!(
             Self,
-            "SELECT apub_id, preferred_username, name, summary, inbox, outbox, \
-            public_key, null as private_key, published, last_refresh \
-            FROM users WHERE preferred_username=$1",
+            r#"SELECT apub_id, preferred_username, name, summary, inbox, outbox,
+            public_key, null as private_key, published, last_refresh
+            FROM users WHERE preferred_username=$1"#,
             username.to_lowercase()
         )
         .fetch_optional(data)
@@ -77,9 +77,9 @@ impl Object for User {
     ) -> Result<Option<Self>, Self::Error> {
         query_as!(
             Self,
-            "SELECT apub_id, preferred_username, name, summary, inbox, outbox, \
-            public_key, private_key, published, last_refresh \
-            FROM users WHERE apub_id=$1",
+            r#"SELECT apub_id, preferred_username, name, summary, inbox, outbox,
+            public_key, private_key, published, last_refresh
+            FROM users WHERE apub_id=$1"#,
             object_id.to_string().to_lowercase()
         )
         .fetch_optional(data.app_data())

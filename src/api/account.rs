@@ -77,10 +77,10 @@ async fn create_account(
 
     query_as!(
         InsertedUser,
-        "INSERT INTO users \
-        (apub_id, preferred_username, name, inbox, outbox, public_key, private_key, email, password) \
-        VALUES (lower($1), $2, $3, $4, $5, $6, $7, $8, $9) \
-        RETURNING apub_id, preferred_username, name, published, email",
+        r#"INSERT INTO users
+           (apub_id, preferred_username, name, inbox, outbox, public_key, private_key, email, password)
+           VALUES (lower($1), $2, $3, $4, $5, $6, $7, $8, $9)
+           RETURNING apub_id, preferred_username, name, published, email"#,
         format!("{}/user/{}", host, info.username.to_lowercase()),
         info.username,
         info.display_name,
