@@ -1,12 +1,17 @@
 <script lang="ts">
+  import { getAll639_1, getEnglishName } from "all-iso-language-codes";
+  import SearchableListbox from "../lib/SearchableListbox.svelte";
+  import ToggleSwitch from "../lib/ToggleSwitch.svelte";
   import { Genres, Roles } from "../enums";
-  import SearchableListbox from "../SearchableListbox.svelte";
   import { validate } from "../validate";
 
   const defaultGenre = "Select genre";
   const defaultRole = "Select your role";
+  const defaultLang = "English";
   let selectedGenre = defaultGenre;
   let selectedRole = defaultRole;
+  let selectedLang = defaultLang;
+  let hasContentWarning = false;
   let feedback = "";
 
   const titleAreaInputHandler = (e: any) => {
@@ -14,6 +19,11 @@
     e.target.style.height = "auto";
     e.target.style.height = e.target.scrollHeight + "px";
   };
+
+  const langList = () =>
+    getAll639_1()
+      .map(getEnglishName)
+      .filter((l) => l != null) as string[];
 
   async function onSubmit(e: any) {
     const newBook = new FormData(e.target);
@@ -32,6 +42,8 @@
     }
     data["genre"] = selectedGenre.trim();
     data["role"] = selectedRole.trim();
+    data["lang"] = selectedLang.trim();
+    data["cw"] = hasContentWarning ? data["cw"] : null;
     data["tags"] = data["tags"].split(",").map((i: string) => i.trim());
 
     await fetch("/api/v1/novel", {
@@ -63,7 +75,8 @@
     <form
       on:submit|preventDefault={onSubmit}
       on:input={() => (feedback = "")}
-      class="space-y-4 p-4 w-1/2 max-w-xl"
+      style="width: 36rem;"
+      class="space-y-4 p-4 max-w-xl"
     >
       <div>
         <textarea
@@ -99,6 +112,12 @@
         <SearchableListbox items={Roles} bind:selectedItem={selectedRole} />
       </div>
       <div>
+        <SearchableListbox
+          items={langList()}
+          bind:selectedItem={selectedLang}
+        />
+      </div>
+      <div>
         <input
           class="basic-input"
           type="tags"
@@ -109,7 +128,32 @@
         />
       </div>
       <div>
-        <button class="button-1" type="submit">Create</button>
+        <ToggleSwitch
+          bind:enabled={hasContentWarning}
+          label="Content warning"
+        />
+      </div>
+      <div>
+        <textarea
+          class={"basic-input max-h-40 overflow-y-auto resize-none" +
+            (hasContentWarning ? "" : " hidden")}
+          placeholder="Content warning"
+          name="cw"
+          value=""
+          disabled={!hasContentWarning}
+          rows="1"
+          wrap="soft"
+          on:input={titleAreaInputHandler}
+          on:keydown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              document.getElementById("submit")?.focus();
+            }
+          }}
+        />
+      </div>
+      <div>
+        <button class="button-1" id="submit" type="submit">Create</button>
       </div>
     </form>
   </div>

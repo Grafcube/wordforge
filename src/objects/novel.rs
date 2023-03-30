@@ -1,5 +1,6 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use derive_more::Display;
+use isolang::Language;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -46,18 +47,20 @@ pub enum Genres {
 
 #[derive(Serialize, Deserialize)]
 pub struct Author {
-    apub_id: String,
-    role: Roles,
+    pub apub_id: String,
+    pub role: Roles,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Novel {
-    id: Uuid,
-    title: String,
-    summary: String,
-    authors: Vec<Author>,
-    genre: Genres,
-    tags: Vec<String>,
+    pub id: Uuid,
+    pub title: String,
+    pub summary: String,
+    pub authors: Vec<Author>,
+    pub genre: Genres,
+    pub tags: Vec<String>,
+    pub language: Language,
+    pub content_warning: Option<String>,
     pub public_key: String,
     #[serde(skip_serializing)]
     private_key: Option<String>,

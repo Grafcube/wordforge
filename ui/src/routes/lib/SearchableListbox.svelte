@@ -11,8 +11,6 @@
     Transition,
   } from "@rgossiaux/svelte-headlessui";
 
-  const optionStyle = "p-2 cursor-pointer rounded-md active:bg-gray-900";
-
   let term = "";
   let itemList = items;
   const itemFilter = (term: string) => {
@@ -30,7 +28,7 @@
 </script>
 
 <Listbox
-  class="bg-gray-800 rounded-md w-full p-2"
+  class="dark:bg-gray-800 rounded-md w-full p-2"
   value={selectedItem}
   on:change={(e) => (selectedItem = e.detail)}
 >
@@ -56,14 +54,16 @@
         bind:value={term}
         on:input={() => (itemList = itemFilter(term))}
       />
-      <div class="overflow-y-auto max-h-80 p-2 text-lg">
+      <div class="overflow-y-auto max-h-80 text-lg">
         {#each itemList as item}
           <ListboxOption
             class={({ active, selected }) => {
+              const optionStyle =
+                "p-2 m-1 cursor-pointer rounded-md active:dark:bg-gray-900";
               if (active) {
-                return `${optionStyle} bg-gray-800`;
+                return `${optionStyle} dark:bg-gray-800`;
               } else if (selected) {
-                return `${optionStyle} bg-gray-900`;
+                return `${optionStyle} dark:bg-gray-900`;
               } else return optionStyle;
             }}
             value={item}>{item}</ListboxOption

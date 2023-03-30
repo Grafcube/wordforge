@@ -8,6 +8,8 @@ create table
     authors text[] not null,
     genre text not null,
     tags text[] not null,
+    language text not null,
+    content_warning text,
     followers text[] not null default '{}' check (array_position(followers, null) is null),
     following text[] not null default '{}' check (array_position(following, null) is null),
     public_key text not null,
