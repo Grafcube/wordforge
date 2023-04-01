@@ -184,9 +184,10 @@ impl Object for DbNovel {
         expected_domain: &Url,
         _data: &Data<Self::DataType>,
     ) -> Result<(), Self::Error> {
-        verify_domains_match(json.id.inner(), expected_domain)
-            .map(|_| ())
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+        match verify_domains_match(json.id.inner(), expected_domain) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
+        }
     }
 
     async fn from_json(

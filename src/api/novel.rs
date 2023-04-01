@@ -40,7 +40,7 @@ async fn new_novel(
         .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
     session.renew();
     match create_novel(info.into_inner(), data.domain(), apub_id, data.app_data()).await {
-        Ok(id) => Ok(HttpResponse::Ok().body(id)),
+        Ok(id) => Ok(HttpResponse::Ok().body(id.to_string().to_lowercase())),
         Err(e) => Err(e),
     }
 }
@@ -50,7 +50,7 @@ async fn create_novel(
     host: &str,
     apub_id: String,
     conn: &PgPool,
-) -> actix_web::Result<String> {
+) -> actix_web::Result<Uuid> {
     let title = info
         .title
         .trim()
@@ -102,5 +102,5 @@ async fn create_novel(
         .await
         .map_err(ErrorInternalServerError)?;
     }
-    Ok(id)
+    Ok(uuid)
 }
