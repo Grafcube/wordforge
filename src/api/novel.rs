@@ -1,8 +1,11 @@
-use crate::objects::novel::{Genres, Roles};
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use crate::objects::novel::{DbNovel, Genres, Roles};
+use activitypub_federation::{
+    config::Data, http_signatures::generate_actor_keypair, protocol::context::WithContext,
+    traits::Object,
+};
 use actix_session::Session;
 use actix_web::{
-    error::{ErrorBadRequest, ErrorInternalServerError, ErrorUnauthorized},
+    error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
     post, web, HttpResponse,
 };
 use isolang::Language;
@@ -65,7 +68,11 @@ async fn create_novel(
         .collect();
     let uuid = Uuid::new_v4();
     let keypair = generate_actor_keypair()?;
-    let url = format!("{}/novel/{}", host, uuid.to_string().to_lowercase());
+    let url = format!(
+        "{}/novel/{}",
+        host,
+        uuid.to_string().to_lowercase().replace('-', "_")
+    );
     let id = query!(
         r#"INSERT INTO novels
            (apub_id, preferred_username, title, summary, authors, genre, tags,
@@ -103,4 +110,20 @@ async fn create_novel(
         .map_err(ErrorInternalServerError)?;
     }
     Ok(uuid)
+}
+
+pub async fn get_novel(
+    uuid: web::Path<String>,
+    data: Data<PgPool>,
+) -> actix_web::Result<HttpResponse> {
+    let novel = DbNovel::read_from_uuid(
+        uuid.parse().map_err(|_| ErrorNotFound("Novel not found"))?,
+        &data,
+    )
+    .await
+    .map_err(ErrorInternalServerError)?
+    .ok_or_else(|| ErrorNotFound("Novel not found"))?;
+    let novel = novel.into_json(&data).await?;
+    let res = WithContext::new_default(novel);
+    Ok(HttpResponse::Ok().json(res))
 }

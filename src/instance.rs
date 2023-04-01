@@ -1,16 +1,14 @@
-use crate::objects::person::User;
+use crate::objects::{novel::DbNovel, person::User};
 use activitypub_federation::{
     config::{Data, FederationConfig, UrlVerifier},
     fetch::webfinger::{build_webfinger_response, extract_webfinger_name},
 };
-use actix_web::{
-    error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound},
-    get, web, HttpResponse,
-};
+use actix_web::{error::ErrorNotFound, get, web, HttpResponse};
 use async_trait::async_trait;
 use serde::Deserialize;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use url::Url;
+use uuid::Uuid;
 
 #[derive(Clone)]
 struct VerifyUrl();
@@ -56,11 +54,31 @@ async fn webfinger(
         extract_webfinger_name(&query.resource, &data).map_err(|_| ErrorNotFound("Bad domain"))?;
     let user = User::read_from_username(name.as_str(), data.app_data())
         .await
-        .map_err(ErrorBadRequest)?
-        .ok_or_else(|| ErrorNotFound("Local user not found"))?;
-    let res = build_webfinger_response(
-        query.resource.clone(),
-        user.apub_id.parse().map_err(ErrorInternalServerError)?,
-    );
-    Ok(HttpResponse::Ok().json(res))
+        .unwrap_or(None);
+    let novel = match Uuid::try_parse(&name.replace('_', "-")) {
+        Ok(uuid) => DbNovel::read_from_uuid(uuid, &data).await.unwrap_or(None),
+        Err(_) => None,
+    };
+
+    let urls: Vec<(Url, Option<&str>)> = vec![
+        (
+            user.map(|v| Url::parse(v.apub_id.as_str()).expect("user parse error")),
+            Some("Person"),
+        ),
+        (
+            novel.map(|v| Url::parse(v.apub_id.as_str()).expect("novel parse error")),
+            Some("Group"),
+        ),
+    ]
+    .iter()
+    .filter(|v| v.0.is_some())
+    .map(|v| (v.0.clone().unwrap(), v.1))
+    .collect();
+
+    if urls.is_empty() {
+        Err(ErrorNotFound("Local actor not found"))
+    } else {
+        let res = build_webfinger_response(query.resource.clone(), urls);
+        Ok(HttpResponse::Ok().json(res))
+    }
 }

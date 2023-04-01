@@ -40,7 +40,7 @@ using ActivityPub.
     - [x] Creating books
     - [x] Set language
     - [ ] Editing and deleting
-    - [ ] Federate books
+    - [x] Federate books
   - [ ] Comic books
     - [ ] [libacbf](https://codeberg.org/Grafcube/libacbf)
   - [ ] Compiling into volumes

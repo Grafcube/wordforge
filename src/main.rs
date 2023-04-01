@@ -57,6 +57,7 @@ async fn main() -> io::Result<()> {
             .wrap(Compress::default())
             .wrap(FederationMiddleware::new(config.clone()))
             .route("/user/{name}", api::users())
+            .route("/novel/{uuid}", api::novels())
             .service(webfinger)
             .service(api::scope())
             .service(

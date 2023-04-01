@@ -1,5 +1,4 @@
-use std::str::FromStr;
-
+use crate::util::USERNAME_RE;
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
@@ -12,9 +11,11 @@ use chrono::{DateTime, Local, NaiveDateTime, SecondsFormat, Utc};
 use isolang::Language;
 use serde::{Deserialize, Serialize};
 use sqlx::{query, PgPool};
+use std::str::FromStr;
 use strum::{Display, EnumString};
 use url::Url;
 use uuid::Uuid;
+use validator::Validate;
 
 #[derive(Clone, Debug, Display, EnumString, Serialize, Deserialize, PartialEq)]
 pub enum Roles {
@@ -83,12 +84,13 @@ pub struct DbNovel {
     pub last_refresh: NaiveDateTime,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct Novel {
     id: ObjectId<DbNovel>,
     #[serde(rename = "type")]
     kind: GroupType,
+    #[validate(regex(path = "USERNAME_RE", message = "Invalid username"))]
     preferred_username: String,
     name: String,
     summary: String,
@@ -101,6 +103,25 @@ pub struct Novel {
     outbox: Url,
     public_key: PublicKey,
     published: String,
+}
+
+impl DbNovel {
+    pub async fn read_from_uuid(
+        uuid: Uuid,
+        data: &Data<PgPool>,
+    ) -> Result<Option<Self>, sqlx::Error> {
+        let apub_id = query!(
+            "SELECT apub_id FROM novels WHERE preferred_username=$1",
+            uuid
+        )
+        .fetch_one(data.app_data())
+        .await?
+        .apub_id;
+
+        Self::read_from_id(Url::parse(apub_id.as_str()).unwrap(), data)
+            .await
+            .map_err(sqlx::Error::from)
+    }
 }
 
 #[async_trait]

@@ -18,3 +18,9 @@ pub fn users() -> Route {
         .guard(guard::Header("accept", FEDERATION_CONTENT_TYPE))
         .to(user::get_user)
 }
+
+pub fn novels() -> Route {
+    web::route()
+        .guard(guard::Header("accept", FEDERATION_CONTENT_TYPE))
+        .to(novel::get_novel)
+}
