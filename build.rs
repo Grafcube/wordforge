@@ -12,6 +12,7 @@ fn main() {
         .output()
         .unwrap();
 
-    println!("cargo:rerun-if-changed=ui");
+    println!("cargo:rerun-if-changed=ui/src");
+    println!("cargo:rerun-if-changed=ui/static");
     println!("cargo:rerun-if-changed=build.rs");
 }
