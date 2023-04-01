@@ -55,7 +55,7 @@ async fn webfinger(
     let user = User::read_from_username(name.as_str(), data.app_data())
         .await
         .unwrap_or(None);
-    let novel = match Uuid::try_parse(&name.replace('_', "-")) {
+    let novel = match Uuid::try_parse(&name) {
         Ok(uuid) => DbNovel::read_from_uuid(uuid, &data).await.unwrap_or(None),
         Err(_) => None,
     };

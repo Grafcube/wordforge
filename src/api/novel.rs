@@ -68,11 +68,7 @@ async fn create_novel(
         .collect();
     let uuid = Uuid::new_v4();
     let keypair = generate_actor_keypair()?;
-    let url = format!(
-        "{}/novel/{}",
-        host,
-        uuid.to_string().to_lowercase().replace('-', "_")
-    );
+    let url = format!("{}/novel/{}", host, uuid.to_string().to_lowercase());
     let id = query!(
         r#"INSERT INTO novels
            (apub_id, preferred_username, title, summary, authors, genre, tags,
