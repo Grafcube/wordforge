@@ -13,12 +13,10 @@
       throw new Error(await res.text());
     }
   }
-
-  let promise = getUser();
 </script>
 
 <div class="main-screen">
-  {#await promise}
+  {#await getUser()}
     <div>Loading...</div>
   {:then data}
     <ul>
