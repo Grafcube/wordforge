@@ -10,6 +10,7 @@
     ListboxOptions,
     Transition,
   } from "@rgossiaux/svelte-headlessui";
+  import { ChevronDownIcon } from "@rgossiaux/svelte-heroicons/outline";
 
   let term = "";
   let itemList = items;
@@ -32,7 +33,10 @@
   value={selectedItem}
   on:change={(e) => (selectedItem = e.detail)}
 >
-  <ListboxButton class="w-full text-left">{selectedItem}</ListboxButton>
+  <div class="flex mx-auto align-middle justify-between">
+    <ListboxButton class="w-full text-left">{selectedItem}</ListboxButton>
+    <ChevronDownIcon class="my-auto h-4 w-4" />
+  </div>
   <Transition
     enter="transition duration-100 ease-out"
     enterFrom="transform scale-95 opacity-0"
@@ -43,7 +47,7 @@
   >
     <ListboxOptions
       as="div"
-      class="absolute z-10 text-left dark:bg-gray-700 rounded-xl list-none"
+      class="absolute z-10 text-left mt-4 dark:bg-gray-700 rounded-xl list-none"
     >
       <input
         class="dark:bg-gray-600 m-2 p-2 rounded-xl text-sl w-fit"
