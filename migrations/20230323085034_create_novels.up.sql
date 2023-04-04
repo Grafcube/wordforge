@@ -11,8 +11,6 @@ create table
     sensitive boolean not null,
     inbox text not null,
     outbox text not null,
-    followers text[] not null default '{}' check (array_position(followers, null) is null),
-    following text[] not null default '{}' check (array_position(following, null) is null),
     public_key text not null,
     private_key text,
     published timestamptz not null default now(),
