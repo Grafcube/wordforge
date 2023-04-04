@@ -1,7 +1,7 @@
 use crate::objects::{novel::DbNovel, person::User};
 use activitypub_federation::{
     config::{Data, FederationConfig, UrlVerifier},
-    fetch::webfinger::{build_webfinger_response, extract_webfinger_name},
+    fetch::webfinger::{build_webfinger_response_with_type, extract_webfinger_name},
 };
 use actix_web::{error::ErrorNotFound, get, web, HttpResponse};
 use async_trait::async_trait;
@@ -78,7 +78,7 @@ async fn webfinger(
     if urls.is_empty() {
         Err(ErrorNotFound("Local actor not found"))
     } else {
-        let res = build_webfinger_response(query.resource.clone(), urls);
+        let res = build_webfinger_response_with_type(query.resource.clone(), urls);
         Ok(HttpResponse::Ok().json(res))
     }
 }
