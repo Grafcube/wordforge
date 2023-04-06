@@ -10,7 +10,10 @@
     ListboxOptions,
     Transition,
   } from "@rgossiaux/svelte-headlessui";
-  import { ChevronDownIcon } from "@rgossiaux/svelte-heroicons/outline";
+  import {
+    CheckIcon,
+    ChevronDownIcon,
+  } from "@rgossiaux/svelte-heroicons/outline";
 
   let term = "";
   let itemList = items;
@@ -35,7 +38,7 @@
 >
   <div class="flex mx-auto align-middle justify-between">
     <ListboxButton class="w-full text-left">{selectedItem}</ListboxButton>
-    <ChevronDownIcon class="my-auto h-4 w-4" />
+    <ChevronDownIcon class="my-auto h-4 w-4 pointer-events-none" />
   </div>
   <Transition
     enter="transition duration-100 ease-out"
@@ -63,15 +66,23 @@
           <ListboxOption
             class={({ active, selected }) => {
               const optionStyle =
-                "p-2 m-1 cursor-pointer rounded-md active:dark:bg-gray-900";
+                "flex align-middle justify-start p-2 m-1 cursor-pointer rounded-md active:dark:bg-gray-900";
               if (active) {
                 return `${optionStyle} dark:bg-gray-800`;
               } else if (selected) {
                 return `${optionStyle} dark:bg-gray-900`;
               } else return optionStyle;
             }}
-            value={item}>{item}</ListboxOption
+            value={item}
+            let:selected
           >
+            {#if selected}
+              <CheckIcon class="my-auto h-6 w-6" />
+            {:else}
+              <span class="h-6 w-6" />
+            {/if}
+            <span class="ml-1">{item}</span>
+          </ListboxOption>
         {/each}
       </div>
     </ListboxOptions>
