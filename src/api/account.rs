@@ -68,8 +68,7 @@ async fn create_account(
     }
 
     let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-    let password = argon2
+    let password = Argon2::default()
         .hash_password(info.password.into_bytes().as_slice(), &salt)
         .map_err(ErrorInternalServerError)?
         .to_string();
