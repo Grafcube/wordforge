@@ -3579,6 +3579,7 @@ dependencies = [
  "actix-session",
  "actix-web",
  "actix-web-grants",
+ "anyhow",
  "argon2",
  "async-trait",
  "chrono",

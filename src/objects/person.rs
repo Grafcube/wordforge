@@ -65,7 +65,7 @@ impl User {
 impl Object for User {
     type DataType = PgPool;
     type Kind = Person;
-    type Error = std::io::Error;
+    type Error = anyhow::Error;
 
     fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
         Some(self.last_refresh)
@@ -84,7 +84,7 @@ impl Object for User {
         )
         .fetch_optional(data.app_data())
         .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+        .map_err(Self::Error::new)
     }
 
     async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
@@ -108,7 +108,7 @@ impl Object for User {
     ) -> Result<(), Self::Error> {
         match verify_domains_match(json.id.inner(), expected_domain) {
             Ok(v) => Ok(v),
-            Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
+            Err(e) => Err(Self::Error::new(e)),
         }
     }
 
@@ -125,10 +125,7 @@ impl Object for User {
             outbox: json.outbox.into(),
             public_key: json.public_key.public_key_pem,
             private_key: None,
-            published: json
-                .published
-                .parse()
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?,
+            published: json.published.parse().map_err(Self::Error::new)?,
             last_refresh: Local::now().naive_local(),
         })
     }

@@ -1,11 +1,13 @@
+use super::chapter::ChapterList;
 use crate::util::USERNAME_RE;
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
     kinds::actor::GroupType,
     protocol::{public_key::PublicKey, verification::verify_domains_match},
-    traits::{Actor, Object},
+    traits::{Actor, Collection, Object},
 };
+use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{DateTime, Local, NaiveDateTime, SecondsFormat, Utc};
 use isolang::Language;
@@ -95,10 +97,12 @@ pub struct Novel {
     name: String,
     summary: String,
     authors: Vec<Author>,
+    attributed_to: Vec<Url>,
     genre: Genres,
     tags: Vec<String>,
     language: String,
     sensitive: bool,
+    history: ChapterList,
     inbox: Url,
     outbox: Url,
     public_key: PublicKey,
@@ -109,7 +113,7 @@ impl DbNovel {
     pub async fn read_from_uuid(
         uuid: Uuid,
         data: &Data<PgPool>,
-    ) -> Result<Option<Self>, sqlx::Error> {
+    ) -> Result<Option<Self>, anyhow::Error> {
         let apub_id = query!(
             "SELECT apub_id FROM novels WHERE preferred_username=$1",
             uuid
@@ -118,9 +122,7 @@ impl DbNovel {
         .await?
         .apub_id;
 
-        Self::read_from_id(Url::parse(apub_id.as_str()).unwrap(), data)
-            .await
-            .map_err(sqlx::Error::from)
+        Self::read_from_id(Url::parse(apub_id.as_str()).unwrap(), data).await
     }
 }
 
@@ -128,7 +130,7 @@ impl DbNovel {
 impl Object for DbNovel {
     type DataType = PgPool;
     type Kind = Novel;
-    type Error = std::io::Error;
+    type Error = anyhow::Error;
 
     fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
         Some(self.last_refresh)
@@ -144,7 +146,7 @@ impl Object for DbNovel {
         )
         .fetch_all(data.app_data())
         .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
+        .map_err(Self::Error::new)?
         .iter()
         .map(|author| Author {
             apub_id: author.apub_id.clone(),
@@ -161,7 +163,7 @@ impl Object for DbNovel {
         )
         .fetch_optional(data.app_data())
         .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
+        .map_err(Self::Error::new)?
         .map(|row| Self {
             apub_id: row.apub_id,
             preferred_username: row.preferred_username,
@@ -181,20 +183,26 @@ impl Object for DbNovel {
         }))
     }
 
-    async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
+    async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
         Ok(Self::Kind {
-            id: self.apub_id.parse().unwrap(),
+            id: self.apub_id.parse()?,
             kind: Default::default(),
             preferred_username: self.preferred_username.to_string().to_lowercase(),
             name: self.title.clone(),
             summary: self.summary.clone(),
             authors: self.authors.clone(),
+            attributed_to: self
+                .authors
+                .iter()
+                .map(|a| a.apub_id.parse().unwrap())
+                .collect(),
             genre: self.genre.clone(),
             tags: self.tags.clone(),
             language: self.language.to_639_1().unwrap().to_string(),
             sensitive: self.sensitive,
-            inbox: self.inbox.parse().unwrap(),
-            outbox: self.outbox.parse().unwrap(),
+            history: ChapterList::read_local(&self, data).await?,
+            inbox: self.inbox.parse()?,
+            outbox: self.outbox.parse()?,
             public_key: self.public_key(),
             published: self.published.to_rfc3339_opts(SecondsFormat::Millis, true),
         })
@@ -207,7 +215,7 @@ impl Object for DbNovel {
     ) -> Result<(), Self::Error> {
         match verify_domains_match(json.id.inner(), expected_domain) {
             Ok(v) => Ok(v),
-            Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
+            Err(e) => Err(Self::Error::new(e)),
         }
     }
 
@@ -217,27 +225,20 @@ impl Object for DbNovel {
     ) -> Result<Self, Self::Error> {
         Ok(Self {
             apub_id: json.id.into_inner().into(),
-            preferred_username: json
-                .preferred_username
-                .parse()
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?,
+            preferred_username: json.preferred_username.parse().map_err(Self::Error::new)?,
             title: json.name,
             summary: json.summary,
             authors: json.authors,
             genre: json.genre,
             tags: json.tags,
-            language: Language::from_639_1(json.language.as_str()).ok_or_else(|| {
-                std::io::Error::new(std::io::ErrorKind::Other, "Unknown language")
-            })?,
+            language: Language::from_639_1(json.language.as_str())
+                .ok_or_else(|| anyhow!("Unknown language"))?,
             sensitive: json.sensitive,
             inbox: json.inbox.into(),
             outbox: json.outbox.into(),
             public_key: json.public_key.public_key_pem,
             private_key: None,
-            published: json
-                .published
-                .parse()
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?,
+            published: json.published.parse().map_err(Self::Error::new)?,
             last_refresh: Local::now().naive_local(),
         })
     }

@@ -23,4 +23,18 @@ create table
     author text not null,
     role text not null,
     primary key (id, author)
-  )
+  );
+
+create table
+  chapters (
+    apub_id text primary key,
+    audience text not null,
+    sequence int not null,
+    title text not null,
+    summary text not null default '',
+    sensitive boolean not null,
+    content text not null default '',
+    published timestamptz not null default now(),
+    updated timestamptz default null,
+    last_refresh timestamp not null default now()
+  );

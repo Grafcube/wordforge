@@ -13,6 +13,7 @@ use actix_web::{
 };
 use std::{env, io};
 
+mod activities;
 mod api;
 mod instance;
 mod objects;

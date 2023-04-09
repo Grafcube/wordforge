@@ -5,20 +5,22 @@ use activitypub_federation::{
 };
 use actix_session::Session;
 use actix_web::{
-    error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
+    error::{
+        ErrorBadRequest, ErrorForbidden, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized,
+    },
     post, web, HttpResponse,
 };
 use isolang::Language;
 use itertools::{sorted, Itertools};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, PgPool};
+use url::Url;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
 struct NewNovel {
     title: String,
     summary: String,
-    // collaborators: Vec<Url>,
     genre: Genres,
     role: Roles,
     lang: String,
@@ -26,10 +28,13 @@ struct NewNovel {
     tags: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize)]
-struct LangRequest {
-    query: Option<String>,
-    get: Option<String>,
+#[derive(Serialize, Deserialize)]
+struct NewChapter {
+    novel: Url,
+    title: String,
+    summary: String,
+    sensitive: bool,
+    content: String,
 }
 
 #[post("/novel")]
@@ -119,7 +124,76 @@ pub async fn get_novel(
     .await
     .map_err(ErrorInternalServerError)?
     .ok_or_else(|| ErrorNotFound("Novel not found"))?;
-    let novel = novel.into_json(&data).await?;
+    let novel = novel
+        .into_json(&data)
+        .await
+        .map_err(ErrorInternalServerError)?;
     let res = WithContext::new_default(novel);
     Ok(HttpResponse::Ok().json(res))
+}
+
+#[post("/chapter")]
+async fn new_chapter(
+    info: web::Json<NewChapter>,
+    data: Data<PgPool>,
+    session: Session,
+) -> actix_web::Result<HttpResponse> {
+    let user_id = session
+        .get::<String>("id")?
+        .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
+    session.renew();
+
+    let authors = query!(
+        "SELECT authors FROM novels WHERE lower(apub_id)=$1",
+        info.novel.to_string().to_lowercase()
+    )
+    .fetch_one(data.app_data())
+    .await
+    .map_err(|_| ErrorNotFound("Novel not found"))?
+    .authors;
+
+    if !authors.contains(&user_id) {
+        return Err(ErrorForbidden(format!(
+            "No write permission: {}",
+            info.novel
+        )));
+    }
+
+    let sequence = query!(
+        r#"SELECT max(sequence) AS sequence
+           FROM chapters
+           WHERE lower(audience)=$1"#,
+        info.novel.as_str()
+    )
+    .fetch_one(data.app_data())
+    .await
+    .map_err(ErrorInternalServerError)?
+    .sequence
+    .unwrap_or(0);
+
+    let apub_id = info
+        .novel
+        .join(&sequence.to_string())
+        .map_err(ErrorInternalServerError)?
+        .to_string();
+
+    let chapter = query!(
+        r#"INSERT INTO chapters
+           (apub_id, audience, title, summary, sensitive, content, sequence)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING apub_id"#,
+        apub_id,
+        info.novel.to_string(),
+        info.title,
+        info.summary,
+        info.sensitive,
+        info.content,
+        sequence
+    )
+    .fetch_one(data.app_data())
+    .await
+    .map_err(ErrorInternalServerError)?
+    .apub_id;
+
+    Ok(HttpResponse::Ok().body(chapter))
 }
