@@ -120,7 +120,7 @@ pub struct ChapterList {
     #[serde(rename = "type")]
     kind: OrderedCollectionType,
     total_items: usize,
-    ordered_items: Vec<ObjectId<Chapter>>,
+    pub ordered_items: Vec<ObjectId<Chapter>>,
 }
 
 #[async_trait]
