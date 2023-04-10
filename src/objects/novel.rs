@@ -1,11 +1,11 @@
 use super::chapter::ChapterList;
-use crate::util::USERNAME_RE;
+use crate::{activities, util::USERNAME_RE};
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
     kinds::actor::GroupType,
-    protocol::{public_key::PublicKey, verification::verify_domains_match},
-    traits::{Actor, Collection, Object},
+    protocol::{context::WithContext, public_key::PublicKey, verification::verify_domains_match},
+    traits::{ActivityHandler, Actor, Collection, Object},
 };
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -60,6 +60,13 @@ pub enum Genres {
     Other,
 }
 
+#[derive(Deserialize, Serialize)]
+#[serde(untagged)]
+#[enum_delegate::implement(ActivityHandler)]
+pub enum NovelAcceptedActivities {
+    Add(activities::add::Add),
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Author {
     pub apub_id: String,
@@ -102,7 +109,7 @@ pub struct Novel {
     tags: Vec<String>,
     language: String,
     sensitive: bool,
-    history: ChapterList,
+    history: WithContext<ChapterList>,
     inbox: Url,
     outbox: Url,
     public_key: PublicKey,
@@ -145,8 +152,7 @@ impl Object for DbNovel {
             object_id.to_string().to_lowercase(),
         )
         .fetch_all(data.app_data())
-        .await
-        .map_err(Self::Error::new)?
+        .await?
         .iter()
         .map(|author| Author {
             apub_id: author.apub_id.clone(),
@@ -162,8 +168,7 @@ impl Object for DbNovel {
             object_id.to_string().to_lowercase()
         )
         .fetch_optional(data.app_data())
-        .await
-        .map_err(Self::Error::new)?
+        .await?
         .map(|row| Self {
             apub_id: row.apub_id,
             preferred_username: row.preferred_username,
@@ -200,7 +205,7 @@ impl Object for DbNovel {
             tags: self.tags.clone(),
             language: self.language.to_639_1().unwrap().to_string(),
             sensitive: self.sensitive,
-            history: ChapterList::read_local(&self, data).await?,
+            history: WithContext::new_default(ChapterList::read_local(&self, data).await?),
             inbox: self.inbox.parse()?,
             outbox: self.outbox.parse()?,
             public_key: self.public_key(),
@@ -223,7 +228,7 @@ impl Object for DbNovel {
     ) -> Result<Self, Self::Error> {
         Ok(Self {
             apub_id: json.id.into_inner().into(),
-            preferred_username: json.preferred_username.parse().map_err(Self::Error::new)?,
+            preferred_username: json.preferred_username.parse()?,
             title: json.name,
             summary: json.summary,
             authors: json.authors,
@@ -236,7 +241,7 @@ impl Object for DbNovel {
             outbox: json.outbox.into(),
             public_key: json.public_key.public_key_pem,
             private_key: None,
-            published: json.published.parse().map_err(Self::Error::new)?,
+            published: json.published.parse()?,
             last_refresh: Local::now().naive_local(),
         })
     }

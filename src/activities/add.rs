@@ -1,12 +1,15 @@
 use crate::objects::{novel::DbNovel, person::User};
 use activitypub_federation::{
+    activity_queue::send_activity,
     config::Data,
     fetch::object_id::ObjectId,
-    kinds::{activity::FollowType, object::ArticleType},
+    kinds::{activity::AddType, object::ArticleType},
+    protocol::context::WithContext,
     traits::{ActivityHandler, Object},
 };
 use anyhow::anyhow;
 use async_trait::async_trait;
+use chrono::Local;
 use serde::{Deserialize, Serialize};
 use sqlx::{query, PgPool};
 use url::Url;
@@ -20,6 +23,7 @@ struct NewChapter {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NewArticle {
     #[serde(rename = "type")]
     kind: ArticleType,
@@ -76,11 +80,36 @@ impl Object for NewChapter {
 #[derive(Serialize, Deserialize)]
 pub struct Add {
     actor: ObjectId<User>,
-    object: ObjectId<NewChapter>,
+    object: WithContext<NewArticle>,
     target: ObjectId<DbNovel>,
     #[serde(rename = "type")]
-    kind: FollowType,
+    kind: AddType,
     id: Url,
+}
+
+impl Add {
+    pub async fn send(
+        chapter: NewArticle,
+        actor: Url,
+        inbox: Url,
+        data: &Data<PgPool>,
+    ) -> anyhow::Result<()> {
+        let user = User::read_from_id(actor.clone(), data)
+            .await?
+            .ok_or_else(|| anyhow!("Local user not found"))?;
+        let add = Self {
+            actor: actor.into(),
+            object: WithContext::new_default(chapter),
+            target: inbox.to_string().parse()?,
+            kind: Default::default(),
+            id: data
+                .domain()
+                .parse::<Url>()?
+                .join(&format!("activities/{}", Local::now().timestamp_nanos()))?,
+        };
+        let add = WithContext::new_default(add);
+        send_activity(add, &user, vec![inbox], data).await
+    }
 }
 
 #[async_trait]
@@ -101,8 +130,8 @@ impl ActivityHandler for Add {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> anyhow::Result<()> {
+        let chapter = self.object.inner();
         let user = self.actor.dereference(data).await?;
-        let chapter = self.object.dereference(data).await?;
         let novel = self.target.dereference_local(data).await?;
 
         let authors = query!(
@@ -141,7 +170,7 @@ impl ActivityHandler for Add {
                VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
             apub_id,
             novel.apub_id.to_string(),
-            chapter.title,
+            chapter.name,
             chapter.summary,
             chapter.sensitive,
             chapter.content,

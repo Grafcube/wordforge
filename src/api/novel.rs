@@ -136,3 +136,14 @@ pub enum NovelAcceptedActivities {
 // pub async fn novel_inbox(data: Data<PgPool>, activity_data: ActivityData) -> actix_web::Result<HttpResponse> {
 //     todo!()
 // }
+
+#[post("/novel/{uuid}/inbox")]
+async fn novel_inbox(
+    data: Data<PgPool>,
+    request: HttpRequest,
+    payload: Bytes,
+) -> actix_web::Result<HttpResponse> {
+    receive_activity::<WithContext<NovelAcceptedActivities>, User, PgPool>(request, payload, &data)
+        .await
+        .map_err(ErrorInternalServerError)
+}

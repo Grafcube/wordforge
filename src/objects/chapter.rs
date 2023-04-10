@@ -104,10 +104,10 @@ impl Object for Chapter {
             summary: json.summary,
             sensitive: json.sensitive,
             content: json.content,
-            published: json.published.parse().map_err(Self::Error::new)?,
+            published: json.published.parse()?,
             updated: match json.updated {
                 None => None,
-                Some(u) => Some(u.parse().map_err(Self::Error::new)?),
+                Some(u) => Some(u.parse()?),
             },
             last_refresh: Local::now().naive_local(),
         })
@@ -142,8 +142,7 @@ impl Collection for ChapterList {
             owner.apub_id.to_string().to_lowercase()
         )
         .fetch_all(data.app_data())
-        .await
-        .map_err(Self::Error::new)?
+        .await?
         .iter()
         .map(|chapter| chapter.apub_id.parse().unwrap())
         .collect();
