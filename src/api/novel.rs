@@ -1,20 +1,21 @@
-use crate::{
-    activities,
-    objects::novel::{DbNovel, Genres, Roles},
+use crate::objects::{
+    novel::{DbNovel, Genres, NovelAcceptedActivities, Roles},
+    person::User,
 };
 use activitypub_federation::{
-    config::Data,
-    http_signatures::generate_actor_keypair,
-    protocol::context::WithContext,
-    traits::{ActivityHandler, Object},
+    actix_web::inbox::receive_activity, config::Data, fetch::webfinger::webfinger_resolve_actor,
+    http_signatures::generate_actor_keypair, protocol::context::WithContext, traits::Object,
 };
 use actix_session::Session;
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
-    post, web, HttpResponse,
+    post,
+    web::{self, Bytes},
+    HttpRequest, HttpResponse,
 };
 use isolang::Language;
 use itertools::{sorted, Itertools};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::{query, PgPool};
 use url::Url;
@@ -108,16 +109,13 @@ async fn create_novel(
 }
 
 pub async fn get_novel(
-    uuid: web::Path<String>,
+    path: web::Path<&str>,
     data: Data<PgPool>,
 ) -> actix_web::Result<HttpResponse> {
-    let novel = DbNovel::read_from_uuid(
-        uuid.parse().map_err(|_| ErrorNotFound("Novel not found"))?,
-        &data,
-    )
-    .await
-    .map_err(ErrorInternalServerError)?
-    .ok_or_else(|| ErrorNotFound("Novel not found"))?;
+    let id = get_novel_id(path.into_inner())?;
+    let novel: DbNovel = webfinger_resolve_actor(&id, &data)
+        .await
+        .map_err(|_| ErrorNotFound("Novel not found"))?;
     let novel = novel
         .into_json(&data)
         .await
@@ -126,11 +124,25 @@ pub async fn get_novel(
     Ok(HttpResponse::Ok().json(res))
 }
 
-#[derive(Deserialize, Serialize)]
-#[serde(untagged)]
-#[enum_delegate::implement(ActivityHandler)]
-pub enum NovelAcceptedActivities {
-    Add(activities::add::Add),
+fn get_novel_id(path: &str) -> actix_web::Result<String> {
+    let re = Regex::new(r"@").map_err(ErrorInternalServerError)?;
+    let path: Vec<&str> = re.splitn(path, 2).collect();
+    let path: &[&str] = path.as_slice();
+    let uuid: Uuid = path
+        .get(0)
+        .ok_or_else(|| ErrorNotFound("Novel not found"))?
+        .parse()
+        .map_err(|_| ErrorNotFound("Novel not found"))?;
+    let domain: Option<Url> = match path.get(1) {
+        None => None,
+        Some(v) => v.parse().ok(),
+    };
+    if domain.is_some() && domain.clone().unwrap().path() != "/" {
+        return Err(ErrorBadRequest("Invalid domain"));
+    };
+    let domain = domain.map(|u| u.to_string()).unwrap_or(String::new());
+
+    Ok(format!("{}@{}", uuid.to_string(), domain))
 }
 
 // pub async fn novel_inbox(data: Data<PgPool>, activity_data: ActivityData) -> actix_web::Result<HttpResponse> {
