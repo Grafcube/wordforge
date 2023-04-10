@@ -14,7 +14,10 @@ pub async fn get_user(
         .await
         .map_err(ErrorInternalServerError)?
         .ok_or_else(|| ErrorNotFound("User not found"))?;
-    let user = user.into_json(&data).await?;
+    let user = user
+        .into_json(&data)
+        .await
+        .map_err(ErrorInternalServerError)?;
     let res = WithContext::new_default(user);
     Ok(HttpResponse::Ok().json(res))
 }

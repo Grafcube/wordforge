@@ -70,10 +70,10 @@ impl Object for Chapter {
 
     async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
         Ok(Self::Kind {
-            id: self.apub_id.parse().unwrap(),
+            id: self.apub_id.parse()?,
             kind: Default::default(),
             name: self.title,
-            audience: self.audience.parse().unwrap(),
+            audience: self.audience.parse()?,
             summary: self.summary,
             sensitive: self.sensitive,
             content: self.content,
@@ -89,10 +89,8 @@ impl Object for Chapter {
         expected_domain: &Url,
         _data: &Data<Self::DataType>,
     ) -> Result<(), Self::Error> {
-        match verify_domains_match(json.id.inner(), expected_domain) {
-            Ok(v) => Ok(v),
-            Err(e) => Err(Self::Error::new(e)),
-        }
+        verify_domains_match(json.id.inner(), expected_domain)?;
+        Ok(())
     }
 
     async fn from_json(

@@ -213,10 +213,8 @@ impl Object for DbNovel {
         expected_domain: &Url,
         _data: &Data<Self::DataType>,
     ) -> Result<(), Self::Error> {
-        match verify_domains_match(json.id.inner(), expected_domain) {
-            Ok(v) => Ok(v),
-            Err(e) => Err(Self::Error::new(e)),
-        }
+        verify_domains_match(json.id.inner(), expected_domain)?;
+        Ok(())
     }
 
     async fn from_json(

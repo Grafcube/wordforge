@@ -89,13 +89,13 @@ impl Object for User {
 
     async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
         Ok(Self::Kind {
-            id: self.apub_id.parse().unwrap(),
+            id: self.apub_id.parse()?,
             kind: Default::default(),
             preferred_username: self.preferred_username.clone(),
             name: self.name.clone(),
             summary: self.summary.clone(),
-            inbox: self.inbox.parse().unwrap(),
-            outbox: self.outbox.parse().unwrap(),
+            inbox: self.inbox.parse()?,
+            outbox: self.outbox.parse()?,
             public_key: self.public_key(),
             published: self.published.to_rfc3339_opts(SecondsFormat::Millis, true),
         })
@@ -106,10 +106,8 @@ impl Object for User {
         expected_domain: &Url,
         _data: &Data<Self::DataType>,
     ) -> Result<(), Self::Error> {
-        match verify_domains_match(json.id.inner(), expected_domain) {
-            Ok(v) => Ok(v),
-            Err(e) => Err(Self::Error::new(e)),
-        }
+        verify_domains_match(json.id.inner(), expected_domain)?;
+        Ok(())
     }
 
     async fn from_json(
@@ -125,7 +123,7 @@ impl Object for User {
             outbox: json.outbox.into(),
             public_key: json.public_key.public_key_pem,
             private_key: None,
-            published: json.published.parse().map_err(Self::Error::new)?,
+            published: json.published.parse()?,
             last_refresh: Local::now().naive_local(),
         })
     }

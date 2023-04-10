@@ -11,7 +11,6 @@ pub fn scope() -> Scope {
         .service(account::login)
         .service(account::validate)
         .service(novel::new_novel)
-        .service(novel::new_chapter)
 }
 
 pub fn users() -> Route {
