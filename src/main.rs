@@ -8,7 +8,7 @@ use actix_session::{
 };
 use actix_web::{
     cookie::{time::Duration, Key, SameSite},
-    middleware::{self, Compress},
+    middleware::{self, Compress, NormalizePath},
     App, HttpServer,
 };
 use std::{env, io};
@@ -56,6 +56,7 @@ async fn main() -> io::Result<()> {
             .wrap(middleware::Logger::default())
             .wrap(session)
             .wrap(Compress::default())
+            .wrap(NormalizePath::trim())
             .wrap(FederationMiddleware::new(config.clone()))
             .route("/user/{name}", api::users())
             .route("/novel/{uuid}", api::novels())
