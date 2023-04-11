@@ -93,22 +93,24 @@ impl Add {
         actor: Url,
         inbox: Url,
         data: &Data<PgPool>,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Url> {
         let user = User::read_from_id(actor.clone(), data)
             .await?
             .ok_or_else(|| anyhow!("Local user not found"))?;
+        let id = data
+            .domain()
+            .parse::<Url>()?
+            .join(&format!("activities/{}", Local::now().timestamp_nanos()))?;
         let add = Self {
             actor: actor.into(),
             object: WithContext::new_default(chapter),
             target: inbox.to_string().parse()?,
             kind: Default::default(),
-            id: data
-                .domain()
-                .parse::<Url>()?
-                .join(&format!("activities/{}", Local::now().timestamp_nanos()))?,
+            id: id.clone(),
         };
         let add = WithContext::new_default(add);
-        send_activity(add, &user, vec![inbox], data).await
+        send_activity(add, &user, vec![inbox], data).await?;
+        Ok(id)
     }
 }
 

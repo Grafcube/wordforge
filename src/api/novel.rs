@@ -1,10 +1,17 @@
-use crate::objects::{
-    novel::{DbNovel, Genres, NovelAcceptedActivities, Roles},
-    person::User,
+use crate::{
+    activities::{self, add::NewArticle},
+    objects::{
+        novel::{DbNovel, Genres, NovelAcceptedActivities, Roles},
+        person::User,
+    },
 };
 use activitypub_federation::{
-    actix_web::inbox::receive_activity, config::Data, fetch::webfinger::webfinger_resolve_actor,
-    http_signatures::generate_actor_keypair, protocol::context::WithContext, traits::Object,
+    actix_web::inbox::receive_activity,
+    config::Data,
+    fetch::webfinger::{extract_webfinger_name, webfinger_resolve_actor},
+    http_signatures::generate_actor_keypair,
+    protocol::context::WithContext,
+    traits::{Actor, Object},
 };
 use actix_session::Session;
 use actix_web::{
@@ -15,8 +22,8 @@ use actix_web::{
 };
 use isolang::Language;
 use itertools::{sorted, Itertools};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::{query, PgPool};
 use url::Url;
 use uuid::Uuid;
@@ -109,45 +116,60 @@ async fn create_novel(
 }
 
 pub async fn get_novel(
-    path: web::Path<&str>,
+    path: web::Path<String>,
     data: Data<PgPool>,
 ) -> actix_web::Result<HttpResponse> {
-    let id = get_novel_id(path.into_inner())?;
-    let novel: DbNovel = webfinger_resolve_actor(&id, &data)
-        .await
-        .map_err(|_| ErrorNotFound("Novel not found"))?;
-    let novel = novel
-        .into_json(&data)
-        .await
-        .map_err(ErrorInternalServerError)?;
+    if path.ends_with(data.domain()) {
+        let id = extract_webfinger_name(&format!("acct:{path}"), &data)
+            .map_err(|_| ErrorNotFound("Bad request"))?;
+        return Ok(HttpResponse::PermanentRedirect()
+            .append_header(("Location", format!("/novel/{id}")))
+            .finish());
+    }
+    let novel = if path.contains('@') {
+        webfinger_resolve_actor(&path, &data)
+            .await
+            .map_err(|_| ErrorNotFound(json!({ "error": "Novel not found" })))?
+    } else {
+        let id = Uuid::parse_str(&path)
+            .map_err(|_| ErrorBadRequest(json!({ "error": "Novel not found" })))?;
+        DbNovel::read_from_uuid(id, &data)
+            .await
+            .map_err(ErrorInternalServerError)?
+            .ok_or_else(|| ErrorNotFound(json!({ "error": "Novel not found" })))?
+    }
+    .into_json(&data)
+    .await
+    .map_err(ErrorInternalServerError)?;
     let res = WithContext::new_default(novel);
     Ok(HttpResponse::Ok().json(res))
 }
 
-fn get_novel_id(path: &str) -> actix_web::Result<String> {
-    let re = Regex::new(r"@").map_err(ErrorInternalServerError)?;
-    let path: Vec<&str> = re.splitn(path, 2).collect();
-    let path: &[&str] = path.as_slice();
-    let uuid: Uuid = path
-        .get(0)
-        .ok_or_else(|| ErrorNotFound("Novel not found"))?
+#[post("/novel/{novel}/create")]
+async fn add_chapter(
+    path: web::Path<String>,
+    info: web::Json<NewArticle>,
+    session: Session,
+    data: Data<PgPool>,
+) -> actix_web::Result<HttpResponse> {
+    let apub_id: Url = session
+        .get::<String>("id")?
+        .ok_or_else(|| ErrorUnauthorized("Not signed in"))?
         .parse()
+        .map_err(ErrorInternalServerError)?;
+    session.renew();
+
+    let novel_id: DbNovel = webfinger_resolve_actor(&path, &data)
+        .await
         .map_err(|_| ErrorNotFound("Novel not found"))?;
-    let domain: Option<Url> = match path.get(1) {
-        None => None,
-        Some(v) => v.parse().ok(),
-    };
-    if domain.is_some() && domain.clone().unwrap().path() != "/" {
-        return Err(ErrorBadRequest("Invalid domain"));
-    };
-    let domain = domain.map(|u| u.to_string()).unwrap_or(String::new());
+    let novel_id = novel_id.inbox();
+    let activity_id = activities::add::Add::send(info.into_inner(), apub_id, novel_id, &data)
+        .await
+        .map_err(ErrorInternalServerError)?;
 
-    Ok(format!("{}@{}", uuid.to_string(), domain))
+    // TODO: Response with Chapter apub_id
+    Ok(HttpResponse::Ok().body(activity_id.to_string()))
 }
-
-// pub async fn novel_inbox(data: Data<PgPool>, activity_data: ActivityData) -> actix_web::Result<HttpResponse> {
-//     todo!()
-// }
 
 #[post("/novel/{uuid}/inbox")]
 async fn novel_inbox(

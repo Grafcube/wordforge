@@ -6,6 +6,7 @@ use activitypub_federation::{
 use actix_web::{error::ErrorNotFound, get, web, HttpResponse};
 use async_trait::async_trait;
 use serde::Deserialize;
+use serde_json::json;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use url::Url;
 use uuid::Uuid;
@@ -51,8 +52,8 @@ async fn webfinger(
     data: Data<PgPool>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let name =
-        extract_webfinger_name(&query.resource, &data).map_err(|_| ErrorNotFound("Bad domain"))?;
-    let user = User::read_from_username(name.as_str(), data.app_data())
+        extract_webfinger_name(&query.resource, &data).map_err(|_| ErrorNotFound("Bad request"))?;
+    let user = User::read_from_username(&name, data.app_data())
         .await
         .unwrap_or(None);
     let novel = match Uuid::try_parse(&name) {
@@ -62,11 +63,11 @@ async fn webfinger(
 
     let urls: Vec<(Url, Option<&str>)> = vec![
         (
-            user.map(|v| Url::parse(v.apub_id.as_str()).expect("user parse error")),
+            user.map(|v| Url::parse(&v.apub_id).expect("user parse error")),
             Some("Person"),
         ),
         (
-            novel.map(|v| Url::parse(v.apub_id.as_str()).expect("novel parse error")),
+            novel.map(|v| Url::parse(&v.apub_id).expect("novel parse error")),
             Some("Group"),
         ),
     ]
@@ -76,7 +77,7 @@ async fn webfinger(
     .collect();
 
     if urls.is_empty() {
-        Err(ErrorNotFound("Local actor not found"))
+        Err(ErrorNotFound(json!({ "error": "Local actor not found" })))
     } else {
         let res = build_webfinger_response_with_type(query.resource.clone(), urls);
         Ok(HttpResponse::Ok().json(res))
