@@ -121,7 +121,7 @@ pub async fn get_novel(
 ) -> actix_web::Result<HttpResponse> {
     if path.ends_with(data.domain()) {
         let id = extract_webfinger_name(&format!("acct:{path}"), &data)
-            .map_err(|_| ErrorNotFound("Bad request"))?;
+            .map_err(|_| ErrorNotFound(json!({ "error": "Bad request" })))?;
         return Ok(HttpResponse::PermanentRedirect()
             .append_header(("Location", format!("/novel/{id}")))
             .finish());
