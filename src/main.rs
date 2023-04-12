@@ -33,7 +33,8 @@ async fn main() -> io::Result<()> {
     let addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "localhost".to_string());
     let port = env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
     let host = format!("{addr}:{port}");
-    let redis_url = env::var("REDIS_URL").expect("REDIS_URL is required");
+    let redis_port = env::var("REDIS_PORT").expect("REDIS_PORT is required");
+    let redis_url = format!("localhost:{redis_port}");
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let config = new_database(host.clone(), db_url)
         .await
