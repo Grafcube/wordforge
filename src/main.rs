@@ -42,7 +42,7 @@ async fn main() -> io::Result<()> {
     let key = Key::from(include_bytes!("cookie.key")); // TODO: Better way to do this
 
     log::info!("Starting server");
-    log::info!("Listening on http://{host}");
+    log::info!("Listening on {host}");
 
     HttpServer::new(move || {
         let session =
@@ -59,11 +59,6 @@ async fn main() -> io::Result<()> {
             .wrap(Compress::default())
             .wrap(NormalizePath::trim())
             .wrap(FederationMiddleware::new(config.clone()))
-            .route("/user/{name}", api::users())
-            .route("/novel/{uuid}", api::novels())
-            .service(api::novel::novel_inbox)
-            .service(webfinger)
-            .service(api::scope())
             .service(
                 Files::new("/", "./ui/build")
                     .index_file("index.html")
@@ -71,6 +66,11 @@ async fn main() -> io::Result<()> {
                         NamedFile::open("./ui/build/index.html").expect("Index file should exist"),
                     ),
             )
+            .route("/user/{name}", api::users())
+            .route("/novel/{uuid}", api::novels())
+            .service(api::novel::novel_inbox)
+            .service(webfinger)
+            .service(api::scope())
     })
     .bind(host)?
     .run()
