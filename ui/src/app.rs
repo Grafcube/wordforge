@@ -1,7 +1,7 @@
-use leptos::{component, view, IntoView, Scope};
-use leptos_meta::{
-    provide_meta_context, Link, LinkProps, Stylesheet, StylesheetProps, Title, TitleProps,
-};
+use crate::auth::*;
+use leptos::*;
+use leptos_meta::*;
+use leptos_router::*;
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -11,7 +11,31 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/wordforge.css"/>
         <Link rel="icon" href="/favicon.svg"/>
         <Title text="Wordforge: Federated creative writing"/>
-        <body class="min-h-screen min-w-full dark:bg-gray-900 dark:text-white">
+        <Router>
+            <main>
+                <Routes>
+                    <Route
+                        path="/"
+                        view=|cx| {
+                            view! { cx, <Home/> }
+                        }
+                    />
+                    <Route
+                        path="/auth"
+                        view=|cx| {
+                            view! { cx, <Auth/> }
+                        }
+                    />
+                </Routes>
+            </main>
+        </Router>
+    }
+}
+
+#[component]
+fn Home(cx: Scope) -> impl IntoView {
+    view! { cx,
+        <body class="main-screen">
             <Topbar/>
             <div class="fixed flex flex-row">
                 <Sidebar/>
@@ -28,7 +52,7 @@ pub fn App(cx: Scope) -> impl IntoView {
 fn Topbar(cx: Scope) -> impl IntoView {
     view! { cx,
         <div class="sticky top-0 w-screen dark:bg-gray-950 m-0 p-1">
-            <a href="/" class="m-2 px-2 w-fit flex items-start align-middle">
+            <a href="/" rel="external" class="m-2 px-2 w-fit flex items-start align-middle">
                 <img
                     src="/favicon.svg"
                     alt="Home"
@@ -48,17 +72,26 @@ fn Sidebar(cx: Scope) -> impl IntoView {
         <div class="sticky flex flex-col items-start p-1 text-xl align-top h-screen left-0 top-0 w-60 dark:bg-gray-700">
             <a
                 href="/auth"
+                rel="external"
                 class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
             >
                 "Sign in / Sign up"
             </a>
-            <a href="/" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
+            <a href="/" rel="external" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
                 "Home"
             </a>
-            <a href="/local" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
+            <a
+                href="/local"
+                rel="external"
+                class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800"
+            >
                 "Local"
             </a>
-            <a href="/public" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
+            <a
+                href="/public"
+                rel="external"
+                class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800"
+            >
                 "Public"
             </a>
         </div>
