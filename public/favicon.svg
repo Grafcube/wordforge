@@ -26,13 +26,13 @@
      showgrid="false"
      inkscape:zoom="1.0345459"
      inkscape:cx="254.21782"
-     inkscape:cy="256.63434"
-     inkscape:window-width="1360"
-     inkscape:window-height="738"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:cy="258.56755"
+     inkscape:window-width="1350"
+     inkscape:window-height="686"
+     inkscape:window-x="26"
+     inkscape:window-y="23"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="text111" />
   <defs
      id="defs2">
     <rect
@@ -52,15 +52,15 @@
        cx="256"
        cy="256"
        r="256" />
-    <text
-       xml:space="preserve"
+    <g
+       aria-label="W"
+       transform="translate(34.797876,3.8664307)"
        id="text111"
-       style="font-size:400px;white-space:pre;shape-inside:url(#rect113);fill:#000000"
-       transform="translate(34.797876,3.8664307)"><tspan
-         x="21.265625"
-         y="397.4043"
-         id="tspan521"><tspan
-           style="font-weight:bold;font-size:360px;-inkscape-font-specification:'sans-serif Bold'"
-           id="tspan519">W</tspan></tspan></text>
+       style="font-size:400px;white-space:pre;shape-inside:url(#rect113)">
+      <path
+         d="m 31.988281,134.96289 h 64.863281 l 45.351558,190.72266 45,-190.72266 h 65.21485 l 45,190.72266 45.35156,-190.72266 h 64.33594 l -61.875,262.44141 H 267.18359 L 219.54687,197.89258 172.4375,397.4043 H 94.390625 Z"
+         style="font-weight:bold;font-size:360px;-inkscape-font-specification:'sans-serif Bold'"
+         id="path210" />
+    </g>
   </g>
 </svg>

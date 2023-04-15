@@ -12,6 +12,7 @@ using ActivityPub.
   - `actix-web`
   - `activitypub_federation`
   - `sqlx`
+  - `leptos`
 - Podman
 - PostgreSQL
 - Redis

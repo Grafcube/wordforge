@@ -1,55 +1,13 @@
-[package]
-name = "wordforge"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = ["server", "ui"]
 
-[dependencies]
-activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust", rev = "99cdbb5", version = "0.4.0", default-features = false, features = [
-  "actix-web",
-] }
-actix-cors = "0.6.4"
-actix-files = "0.6.2"
-actix-session = { version = "0.7.2", features = [
-  "actix",
-  "rand",
-  "redis-actor-session",
-] }
-actix-web = { version = "4.3.0", features = [
-  "openssl",
-  "secure-cookies",
-  "actix-tls",
-] }
-actix-web-grants = "3.0.1"
-anyhow = "1.0.70"
-argon2 = { version = "0.4.1", features = ["std"] }
-async-trait = "0.1.64"
-chrono = { version = "0.4.23", features = ["serde"] }
-dotenv = "0.15.0"
-enum_delegate = "0.2.0"
-env_logger = "0.10.0"
-isolang = { version = "2.2.0", features = [
-  "list_languages",
-  "local_names",
-  "serde",
-] }
-itertools = "0.10.5"
-lazy_static = "1.4.0"
-log = "0.4.17"
-rand_core = { version = "0.6.4", features = ["std"] }
-regex = "1.7.1"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.93"
-sqlx = { version = "0.6.2", features = [
-  "all-types",
-  "postgres",
-  "runtime-actix-native-tls",
-] }
-strum = { version = "0.24.1", features = ["derive"] }
-url = { version = "2.3.1", features = ["serde"] }
-uuid = { version = "1.3.0", features = [
-  "fast-rng",
-  "v4",
-  "serde",
-  "macro-diagnostics",
-] }
-validator = { version = "0.16.0", features = ["derive"] }
+[[workspace.metadata.leptos]]
+name = "wordforge"
+bin-package = "wordforge-server"
+lib-package = "wordforge-ui"
+site-root = "target/site"
+style-file = "target/style.css"
+assets-dir = "public"
+site-addr = "127.0.0.1:3000"
+reload-port = 3001
+lib-features = ["hydrate"]

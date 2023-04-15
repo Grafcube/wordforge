@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 .main-screen {
-  @apply h-screen w-screen dark:bg-gray-900 dark:text-white;
+  @apply min-h-screen w-screen dark:bg-gray-900 dark:text-white;
 }
 
 .button-1 {
@@ -12,8 +12,4 @@
 
 .basic-input {
   @apply dark:bg-gray-800 p-2 rounded-xl text-xl w-full disabled:dark:bg-gray-600;
-}
-
-.basic-switch {
-  @apply relative inline-flex items-center rounded-full;
 }

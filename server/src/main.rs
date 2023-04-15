@@ -1,6 +1,6 @@
 use crate::instance::{new_database, webfinger};
 use activitypub_federation::config::FederationMiddleware;
-use actix_files::{Files, NamedFile};
+use actix_files::Files;
 use actix_session::{
     config::{CookieContentSecurity, PersistentSession},
     storage::RedisActorSessionStore,
@@ -9,9 +9,12 @@ use actix_session::{
 use actix_web::{
     cookie::{time::Duration, Key, SameSite},
     middleware::{self, Compress, NormalizePath},
-    App, HttpServer,
+    HttpServer,
 };
+use leptos::view;
+use leptos_actix::{generate_route_list, LeptosRoutes};
 use std::{env, io};
+use wordforge_ui::app::*;
 
 mod activities;
 mod api;
@@ -30,19 +33,21 @@ async fn main() -> io::Result<()> {
         },
     ));
 
-    let addr = env::var("SERVER_ADDR").unwrap_or_else(|_| "localhost".to_string());
-    let port = env::var("SERVER_PORT").unwrap_or_else(|_| "50505".to_string());
-    let host = format!("{addr}:{port}");
+    let uiconf = leptos::get_configuration(None)
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let addr = uiconf.leptos_options.site_addr;
+    let routes = generate_route_list(|cx| view! { cx, <App/> });
     let redis_port = env::var("REDIS_PORT").expect("REDIS_PORT is required");
     let redis_url = format!("localhost:{redis_port}");
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
-    let config = new_database(host.clone(), db_url)
+    let config = new_database(addr.to_string(), db_url)
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let key = Key::from(include_bytes!("cookie.key")); // TODO: Better way to do this
 
     log::info!("Starting server");
-    log::info!("Listening on {host}");
+    log::info!("Listening on {addr}");
 
     HttpServer::new(move || {
         let session =
@@ -53,26 +58,29 @@ async fn main() -> io::Result<()> {
                 .cookie_secure(cfg!(not(debug_assertions)))
                 .build();
 
-        App::new()
+        let opts = &uiconf.leptos_options;
+        let site_root = &opts.site_root;
+        let routes = &routes;
+
+        actix_web::App::new()
             .wrap(middleware::Logger::default())
             .wrap(session)
             .wrap(Compress::default())
             .wrap(NormalizePath::trim())
             .wrap(FederationMiddleware::new(config.clone()))
-            .service(
-                Files::new("/", "./ui/build")
-                    .index_file("index.html")
-                    .default_handler(
-                        NamedFile::open("./ui/build/index.html").expect("Index file should exist"),
-                    ),
-            )
             .route("/user/{name}", api::users())
             .route("/novel/{uuid}", api::novels())
             .service(api::novel::novel_inbox)
-            .service(webfinger)
             .service(api::scope())
+            .service(webfinger)
+            .leptos_routes(
+                opts.to_owned(),
+                routes.to_owned(),
+                |cx| view! { cx, <App/> },
+            )
+            .service(Files::new("/", site_root))
     })
-    .bind(host)?
+    .bind(&addr)?
     .run()
     .await
 }
