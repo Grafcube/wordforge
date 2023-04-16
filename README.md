@@ -16,9 +16,7 @@ using ActivityPub.
 - Podman
 - PostgreSQL
 - Redis
-- SvelteKit
 - Tailwind CSS
-- Typescript
 
 ## TODO and Plans
 
