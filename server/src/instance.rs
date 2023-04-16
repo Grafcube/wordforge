@@ -63,12 +63,12 @@ async fn webfinger(
 
     let urls: Vec<(Url, Option<&str>)> = vec![
         (
-            user.map(|v| Url::parse(&v.apub_id).expect("user parse error")),
-            Some("Person"),
-        ),
-        (
             novel.map(|v| Url::parse(&v.apub_id).expect("novel parse error")),
             Some("Group"),
+        ),
+        (
+            user.map(|v| Url::parse(&v.apub_id).expect("user parse error")),
+            Some("Person"),
         ),
     ]
     .iter()

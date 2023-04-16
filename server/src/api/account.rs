@@ -98,7 +98,7 @@ async fn create_account(
 #[post("/login")]
 async fn login(
     pool: Data<PgPool>,
-    info: web::Json<Login>,
+    info: web::Form<Login>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
     match verify_session(info.clone(), pool.app_data()).await {
@@ -106,7 +106,9 @@ async fn login(
             session.insert("id", id)?;
             session.insert("client_app", info.client_app.clone())?;
             session.insert("client_website", info.client_website.clone())?;
-            Ok(HttpResponse::Ok().finish())
+            Ok(HttpResponse::TemporaryRedirect()
+                .append_header(("location", "/"))
+                .finish())
         }
         Err(e) => Err(e),
     }
