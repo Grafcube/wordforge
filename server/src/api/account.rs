@@ -101,12 +101,12 @@ async fn login(
     info: web::Form<Login>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
-    match verify_session(info.clone(), pool.app_data()).await {
+    match verify_session(&info, pool.app_data()).await {
         Ok(id) => {
             session.insert("id", id)?;
-            session.insert("client_app", info.client_app.clone())?;
-            session.insert("client_website", info.client_website.clone())?;
-            Ok(HttpResponse::TemporaryRedirect()
+            session.insert("client_app", &info.client_app)?;
+            session.insert("client_website", &info.client_website)?;
+            Ok(HttpResponse::Found()
                 .append_header(("location", "/"))
                 .finish())
         }
@@ -114,7 +114,7 @@ async fn login(
     }
 }
 
-async fn verify_session(info: Login, conn: &PgPool) -> actix_web::Result<String> {
+async fn verify_session(info: &Login, conn: &PgPool) -> actix_web::Result<String> {
     info.validate().map_err(ErrorBadRequest)?;
     let res = query!(
         "SELECT apub_id, password FROM users WHERE lower(email)=$1",

@@ -1,4 +1,5 @@
-use leptos::{ev::*, *};
+use crate::components::auth::*;
+use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
@@ -32,16 +33,15 @@ pub fn App(cx: Scope) -> impl IntoView {
 #[component]
 fn Home(cx: Scope) -> impl IntoView {
     view! { cx,
-        <body class="main-screen">
-            <Topbar/>
-            <div class="fixed flex flex-row">
-                <Sidebar/>
-                <div class="items-center text-left overflow-auto">
-                    <p class="mx-auto text-6xl text-center">"EVENTS"</p>
-                    <p class="mx-auto text-6xl text-center">"RECOMMENDATIONS"</p>
-                </div>
+        <Body class="main-screen"/>
+        <Topbar/>
+        <div class="fixed flex flex-row">
+            <Sidebar/>
+            <div class="items-center overflow-auto">
+                <p class="mx-auto text-6xl">"EVENTS"</p>
+                <p class="mx-auto text-6xl">"RECOMMENDATIONS"</p>
             </div>
-        </body>
+        </div>
     }
 }
 
@@ -83,45 +83,5 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                 "Public"
             </A>
         </div>
-    }
-}
-
-#[component]
-fn Auth(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <body class="main-screen">
-            <Login/>
-        </body>
-    }
-}
-
-#[component]
-fn Login(cx: Scope) -> impl IntoView {
-    let (_email, set_email) = create_signal(cx, String::new());
-    let (_pass, set_pass) = create_signal(cx, String::new());
-
-    view! { cx,
-        <Form method="post" action="/api/v1/login">
-            <input
-                type="email"
-                class="basic-input"
-                placeholder="Email"
-                name="email"
-                required
-                on:keyup=move |ev: KeyboardEvent| set_email(event_target_value(&ev))
-                on:change=move |ev| set_email(event_target_value(&ev))
-            />
-            <input
-                type="password"
-                class="basic-input"
-                placeholder="Password (minimum 8 characters)"
-                name="password"
-                required
-                on:keyup=move |ev: KeyboardEvent| set_pass(event_target_value(&ev))
-                on:change=move |ev| set_pass(event_target_value(&ev))
-            />
-            <input type="hidden" name="client_app" value="Web"/>
-            <input type="submit" class="button-1" value="Sign in"/>
-        </Form>
     }
 }

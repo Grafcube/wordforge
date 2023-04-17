@@ -3,6 +3,7 @@ use leptos::*;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod app;
+pub(crate) mod components;
 
 #[wasm_bindgen]
 pub fn hydrate() {

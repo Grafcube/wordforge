@@ -76,6 +76,14 @@ sqlx migrate run
 
 5. Start the server.
 
+Watch mode:
+
 ```sh
-cargo run
+cargo leptos watch
+```
+
+Serve mode:
+
+```sh
+cargo leptos serve
 ```
