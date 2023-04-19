@@ -1,5 +1,6 @@
 use crate::{
     activities::{self, add::NewArticle},
+    instance::DbHandle,
     objects::{
         novel::{DbNovel, Genres, NovelAcceptedActivities, Roles},
         person::User,
@@ -42,7 +43,7 @@ struct NewNovel {
 #[post("/novel")]
 async fn new_novel(
     info: web::Json<NewNovel>,
-    data: Data<PgPool>,
+    data: Data<DbHandle>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
     let apub_id = session
@@ -117,7 +118,7 @@ async fn create_novel(
 
 pub async fn get_novel(
     path: web::Path<String>,
-    data: Data<PgPool>,
+    data: Data<DbHandle>,
 ) -> actix_web::Result<HttpResponse> {
     if path.ends_with(data.domain()) {
         let id = extract_webfinger_name(&format!("acct:{path}"), &data)
@@ -150,7 +151,7 @@ async fn add_chapter(
     path: web::Path<String>,
     info: web::Json<NewArticle>,
     session: Session,
-    data: Data<PgPool>,
+    data: Data<DbHandle>,
 ) -> actix_web::Result<HttpResponse> {
     let apub_id: Url = session
         .get::<String>("id")?
@@ -173,11 +174,13 @@ async fn add_chapter(
 
 #[post("/novel/{uuid}/inbox")]
 async fn novel_inbox(
-    data: Data<PgPool>,
+    data: Data<DbHandle>,
     request: HttpRequest,
     payload: Bytes,
 ) -> actix_web::Result<HttpResponse> {
-    receive_activity::<WithContext<NovelAcceptedActivities>, User, PgPool>(request, payload, &data)
-        .await
-        .map_err(ErrorInternalServerError)
+    receive_activity::<WithContext<NovelAcceptedActivities>, User, DbHandle>(
+        request, payload, &data,
+    )
+    .await
+    .map_err(ErrorInternalServerError)
 }

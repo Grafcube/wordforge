@@ -1,5 +1,5 @@
 use super::chapter::{Chapter, ChapterList};
-use crate::{activities, util::USERNAME_RE};
+use crate::{activities, instance::DbHandle, util::USERNAME_RE};
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Local, NaiveDateTime, SecondsFormat, Utc};
 use isolang::Language;
 use serde::{Deserialize, Serialize};
-use sqlx::{query, PgPool};
+use sqlx::query;
 use std::str::FromStr;
 use strum::{Display, EnumString};
 use url::Url;
@@ -120,13 +120,13 @@ pub struct Novel {
 impl DbNovel {
     pub async fn read_from_uuid(
         uuid: Uuid,
-        data: &Data<PgPool>,
+        data: &Data<DbHandle>,
     ) -> Result<Option<Self>, anyhow::Error> {
         let apub_id = query!(
             "SELECT apub_id FROM novels WHERE preferred_username=$1",
             uuid
         )
-        .fetch_one(data.app_data())
+        .fetch_one(data.app_data().as_ref())
         .await?
         .apub_id;
 
@@ -136,7 +136,7 @@ impl DbNovel {
 
 #[async_trait]
 impl Object for DbNovel {
-    type DataType = PgPool;
+    type DataType = DbHandle;
     type Kind = Novel;
     type Error = anyhow::Error;
 
@@ -152,7 +152,7 @@ impl Object for DbNovel {
             "SELECT author as apub_id, role FROM author_roles WHERE lower(id)=$1",
             object_id.to_string().to_lowercase(),
         )
-        .fetch_all(data.app_data())
+        .fetch_all(data.app_data().as_ref())
         .await?
         .iter()
         .map(|author| Author {
@@ -168,7 +168,7 @@ impl Object for DbNovel {
                FROM novels WHERE lower(apub_id)=$1"#,
             object_id.to_string().to_lowercase()
         )
-        .fetch_optional(data.app_data())
+        .fetch_optional(data.app_data().as_ref())
         .await?
         .map(|row| Self {
             apub_id: row.apub_id,

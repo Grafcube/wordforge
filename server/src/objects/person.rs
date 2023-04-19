@@ -1,4 +1,4 @@
-use crate::util::USERNAME_RE;
+use crate::{instance::DbHandle, util::USERNAME_RE};
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
@@ -63,7 +63,7 @@ impl User {
 
 #[async_trait]
 impl Object for User {
-    type DataType = PgPool;
+    type DataType = DbHandle;
     type Kind = Person;
     type Error = anyhow::Error;
 
@@ -82,7 +82,7 @@ impl Object for User {
             FROM users WHERE apub_id=$1"#,
             object_id.to_string().to_lowercase()
         )
-        .fetch_optional(data.app_data())
+        .fetch_optional(data.app_data().as_ref())
         .await
         .map_err(Self::Error::new)
     }

@@ -1,4 +1,5 @@
 use super::novel::DbNovel;
+use crate::instance::DbHandle;
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
@@ -9,7 +10,7 @@ use activitypub_federation::{
 use async_trait::async_trait;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, PgPool};
+use sqlx::{query, query_as};
 use url::Url;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -43,7 +44,7 @@ pub struct Article {
 
 #[async_trait]
 impl Object for Chapter {
-    type DataType = PgPool;
+    type DataType = DbHandle;
     type Kind = Article;
     type Error = anyhow::Error;
 
@@ -63,7 +64,7 @@ impl Object for Chapter {
                WHERE lower(apub_id)=$1"#,
             object_id.to_string().to_lowercase()
         )
-        .fetch_optional(data.app_data())
+        .fetch_optional(data.app_data().as_ref())
         .await
         .map_err(Self::Error::new)
     }
@@ -126,7 +127,7 @@ pub struct ChapterList {
 #[async_trait]
 impl Collection for ChapterList {
     type Owner = DbNovel;
-    type DataType = PgPool;
+    type DataType = DbHandle;
     type Kind = ChapterList;
     type Error = anyhow::Error;
 
@@ -141,7 +142,7 @@ impl Collection for ChapterList {
                ORDER BY sequence DESC"#,
             owner.apub_id.to_string().to_lowercase()
         )
-        .fetch_all(data.app_data())
+        .fetch_all(data.app_data().as_ref())
         .await?
         .iter()
         .map(|chapter| chapter.apub_id.parse().unwrap())

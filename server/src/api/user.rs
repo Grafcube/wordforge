@@ -1,4 +1,4 @@
-use crate::objects::person::User;
+use crate::{instance::DbHandle, objects::person::User};
 use activitypub_federation::{
     config::Data,
     fetch::webfinger::{extract_webfinger_name, webfinger_resolve_actor},
@@ -10,11 +10,10 @@ use actix_web::{
     web, HttpResponse,
 };
 use serde_json::json;
-use sqlx::PgPool;
 
 pub async fn get_user(
     path: web::Path<String>,
-    data: Data<PgPool>,
+    data: Data<DbHandle>,
 ) -> actix_web::Result<HttpResponse> {
     if path.ends_with(data.domain()) {
         let name = extract_webfinger_name(&format!("acct:{path}"), &data)

@@ -1,4 +1,7 @@
-use crate::objects::{novel::DbNovel, person::User};
+use crate::{
+    instance::DbHandle,
+    objects::{novel::DbNovel, person::User},
+};
 use activitypub_federation::{
     activity_queue::send_activity,
     config::Data,
@@ -11,7 +14,7 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
-use sqlx::{query, PgPool};
+use sqlx::query;
 use url::Url;
 
 #[derive(Serialize, Deserialize)]
@@ -35,7 +38,7 @@ pub struct NewArticle {
 
 #[async_trait]
 impl Object for NewChapter {
-    type DataType = PgPool;
+    type DataType = DbHandle;
     type Kind = NewArticle;
     type Error = anyhow::Error;
 
@@ -92,7 +95,7 @@ impl Add {
         chapter: NewArticle,
         actor: Url,
         inbox: Url,
-        data: &Data<PgPool>,
+        data: &Data<DbHandle>,
     ) -> anyhow::Result<Url> {
         let user = User::read_from_id(actor.clone(), data)
             .await?
@@ -116,7 +119,7 @@ impl Add {
 
 #[async_trait]
 impl ActivityHandler for Add {
-    type DataType = PgPool;
+    type DataType = DbHandle;
     type Error = anyhow::Error;
 
     fn id(&self) -> &Url {
@@ -140,7 +143,7 @@ impl ActivityHandler for Add {
             "SELECT authors FROM novels WHERE lower(apub_id)=$1",
             novel.apub_id.to_string().to_lowercase()
         )
-        .fetch_one(data.app_data())
+        .fetch_one(data.app_data().as_ref())
         .await
         .map_err(|_| anyhow!("Novel not found"))?
         .authors;
@@ -155,7 +158,7 @@ impl ActivityHandler for Add {
                WHERE lower(audience)=$1"#,
             novel.apub_id.as_str()
         )
-        .fetch_one(data.app_data())
+        .fetch_one(data.app_data().as_ref())
         .await?
         .sequence
         .unwrap_or(0);
@@ -178,7 +181,7 @@ impl ActivityHandler for Add {
             chapter.content,
             sequence
         )
-        .execute(data.app_data())
+        .execute(data.app_data().as_ref())
         .await?;
 
         Ok(())

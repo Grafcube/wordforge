@@ -1,6 +1,8 @@
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 #[component]
 pub(crate) fn Auth(cx: Scope) -> impl IntoView {
@@ -8,14 +10,15 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
 
     view! { cx,
         <Body class="main-screen"/>
-        <Login/>
+        <Login set_errormsg=set_errormsg/>
     }
 }
 
 #[component]
-pub(crate) fn Login(cx: Scope) -> impl IntoView {
+pub(crate) fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
+    let login = create_server_action::<ServerLogin>(cx);
     view! { cx,
-        <Form method="post" action="/api/v1/login">
+        <ActionForm action=login>
             <input type="email" class="basic-input" placeholder="Email" name="email" required/>
             <input
                 type="password"
@@ -24,13 +27,27 @@ pub(crate) fn Login(cx: Scope) -> impl IntoView {
                 name="password"
                 required
             />
-            <input type="hidden" name="client_app" value="Web"/>
             <input type="submit" class="button-1" value="Sign in"/>
-        </Form>
+        </ActionForm>
     }
 }
 
 #[component]
 fn ErrorView(cx: Scope, message: String) -> impl IntoView {
     view! { cx, <p class="text-red-800">{message}</p> }
+}
+
+#[server(ServerLogin, "/auth/login")]
+pub async fn login(cx: Scope, email: String, password: String) -> Result<(), ServerFnError> {
+    #[derive(Serialize, Deserialize, Validate)]
+    struct LoginData {
+        #[validate(email)]
+        email: String,
+        #[validate(length(min = 8))]
+        password: String,
+        client_app: String,
+        #[validate(url)]
+        client_website: Option<String>,
+    }
+    todo!()
 }

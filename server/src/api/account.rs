@@ -1,4 +1,4 @@
-use crate::util::USERNAME_RE;
+use crate::{instance::DbHandle, util::USERNAME_RE};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_session::Session;
 use actix_web::{
@@ -44,7 +44,7 @@ struct Login {
 }
 
 #[post("/accounts")]
-async fn create(pool: Data<PgPool>, info: web::Json<NewUser>) -> actix_web::Result<HttpResponse> {
+async fn create(pool: Data<DbHandle>, info: web::Json<NewUser>) -> actix_web::Result<HttpResponse> {
     create_account(info.into_inner(), pool.domain(), pool.app_data())
         .await
         .map(|v| HttpResponse::Ok().json(v))
@@ -97,7 +97,7 @@ async fn create_account(
 
 #[post("/login")]
 async fn login(
-    pool: Data<PgPool>,
+    pool: Data<DbHandle>,
     info: web::Form<Login>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
@@ -132,13 +132,13 @@ async fn verify_session(info: &Login, conn: &PgPool) -> actix_web::Result<String
 }
 
 #[get("/validate")]
-async fn validate(pool: Data<PgPool>, session: Session) -> actix_web::Result<HttpResponse> {
+async fn validate(pool: Data<DbHandle>, session: Session) -> actix_web::Result<HttpResponse> {
     let id = session
         .get::<String>("id")?
         .ok_or_else(|| ErrorUnauthorized("Not signed in"))?;
     session.renew();
     let name = query!("SELECT name FROM users WHERE apub_id=$1", id)
-        .fetch_one(pool.app_data())
+        .fetch_one(pool.app_data().as_ref())
         .await
         .map_err(ErrorNotFound)?
         .name;

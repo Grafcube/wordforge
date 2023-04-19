@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::objects::{novel::DbNovel, person::User};
 use activitypub_federation::{
     config::{Data, FederationConfig, UrlVerifier},
@@ -10,6 +12,8 @@ use serde_json::json;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use url::Url;
 use uuid::Uuid;
+
+pub type DbHandle = Arc<PgPool>;
 
 #[derive(Clone)]
 struct VerifyUrl();
@@ -25,12 +29,14 @@ impl UrlVerifier for VerifyUrl {
 pub async fn new_database(
     host: String,
     url: String,
-) -> Result<FederationConfig<PgPool>, std::io::Error> {
-    let pool = PgPoolOptions::new()
-        .max_connections(6)
-        .connect(url.as_str())
-        .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+) -> Result<FederationConfig<DbHandle>, std::io::Error> {
+    let pool = Arc::new(
+        PgPoolOptions::new()
+            .max_connections(6)
+            .connect(url.as_str())
+            .await
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?,
+    );
 
     FederationConfig::builder()
         .debug(cfg!(debug_assertions))
@@ -49,7 +55,7 @@ struct WebfingerQuery {
 #[get("/.well-known/webfinger")]
 async fn webfinger(
     query: web::Query<WebfingerQuery>,
-    data: Data<PgPool>,
+    data: Data<DbHandle>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let name =
         extract_webfinger_name(&query.resource, &data).map_err(|_| ErrorNotFound("Bad request"))?;
