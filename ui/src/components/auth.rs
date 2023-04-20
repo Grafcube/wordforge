@@ -37,7 +37,7 @@ fn ErrorView(cx: Scope, message: String) -> impl IntoView {
     view! { cx, <p class="text-red-800">{message}</p> }
 }
 
-#[server(ServerLogin, "/auth/login")]
+#[server(ServerLogin, "/server")]
 pub async fn login(cx: Scope, email: String, password: String) -> Result<(), ServerFnError> {
     #[derive(Serialize, Deserialize, Validate)]
     struct LoginData {

@@ -75,7 +75,7 @@ async fn main() -> io::Result<()> {
             .service(api::novel::novel_inbox)
             .service(api::scope())
             .service(webfinger)
-            .route("/api/{tail:.*}", handle_server_fns())
+            .route("/server/{tail:.*}", handle_server_fns())
             .leptos_routes(
                 opts.to_owned(),
                 routes.to_owned(),
