@@ -22,6 +22,7 @@ actix-web = { version = "4.3.0", features = [
 ], optional = true }
 argon2 = { version = "0.4.1", features = ["std"], optional = true }
 leptos = { version = "0.2.5", default-features = false, features = ["serde"] }
+leptos_actix = { version = "0.2.5", optional = true }
 leptos_meta = { version = "0.2.5", default-features = false }
 leptos_router = "0.2.5"
 log = "0.4.17"
@@ -42,6 +43,7 @@ ssr = [
   "leptos/ssr",
   "leptos_meta/ssr",
   "leptos_router/ssr",
+  "dep:leptos_actix",
   "dep:activitypub_federation",
   "dep:actix-session",
   "dep:actix-web",

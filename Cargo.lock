@@ -4368,6 +4368,7 @@ dependencies = [
  "actix-web",
  "argon2",
  "leptos",
+ "leptos_actix",
  "leptos_meta",
  "leptos_router",
  "log",
