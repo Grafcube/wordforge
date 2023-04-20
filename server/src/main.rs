@@ -9,10 +9,10 @@ use actix_session::{
 use actix_web::{
     cookie::{time::Duration, Key, SameSite},
     middleware::{self, Compress, NormalizePath},
-    HttpServer,
+    web, HttpServer,
 };
 use leptos::view;
-use leptos_actix::{generate_route_list, LeptosRoutes};
+use leptos_actix::{generate_route_list, handle_server_fns, LeptosRoutes};
 use std::{env, io};
 use wordforge_ui::app::*;
 
@@ -73,6 +73,7 @@ async fn main() -> io::Result<()> {
             .service(api::novel::novel_inbox)
             .service(api::scope())
             .service(webfinger)
+            .route("/server/{tail:.*}", handle_server_fns())
             .leptos_routes(
                 opts.to_owned(),
                 routes.to_owned(),
