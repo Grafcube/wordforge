@@ -9,7 +9,7 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
     view! { cx,
         <Body class="main-screen"/>
         <Login set_errormsg=set_errormsg/>
-        <ErrorView message=errormsg()/>
+        <ErrorView message=errormsg/>
     }
 }
 
@@ -17,18 +17,12 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
 fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
     let login = create_server_action::<ServerLogin>(cx);
     let response = login.value();
-    // let err = move || {
-    //     response.get().map(|v| match v {
-    //         Ok(v) => set_errormsg(v),
-    //         Err(e) => set_errormsg(e.to_string()),
-    //     })
-    // };
-    create_effect(cx, move |_| {
-        let res = response.get();
-        if let Some(Ok(e)) = res {
-            set_errormsg(e);
-        }
-    });
+    let err = move || {
+        response.get().map(|v| match v {
+            Ok(v) => set_errormsg(v),
+            Err(e) => set_errormsg(e.to_string()),
+        })
+    };
 
     view! { cx,
         <ActionForm action=login>
@@ -42,12 +36,13 @@ fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
             />
             <input type="hidden" name="client_app" value="Web"/>
             <input type="submit" class="button-1" value="Sign in"/>
+            {err}
         </ActionForm>
     }
 }
 
 #[component]
-fn ErrorView(cx: Scope, message: String) -> impl IntoView {
+fn ErrorView(cx: Scope, message: ReadSignal<String>) -> impl IntoView {
     view! { cx, <p class="text-red-800">{message}</p> }
 }
 
