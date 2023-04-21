@@ -9,12 +9,27 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
     view! { cx,
         <Body class="main-screen"/>
         <Login set_errormsg=set_errormsg/>
+        <ErrorView message=errormsg()/>
     }
 }
 
 #[component]
 fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
     let login = create_server_action::<ServerLogin>(cx);
+    let response = login.value();
+    // let err = move || {
+    //     response.get().map(|v| match v {
+    //         Ok(v) => set_errormsg(v),
+    //         Err(e) => set_errormsg(e.to_string()),
+    //     })
+    // };
+    create_effect(cx, move |_| {
+        let res = response.get();
+        if let Some(Ok(e)) = res {
+            set_errormsg(e);
+        }
+    });
+
     view! { cx,
         <ActionForm action=login>
             <input type="email" class="basic-input" placeholder="Email" name="email" required/>
@@ -25,8 +40,8 @@ fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
                 name="password"
                 required
             />
-            <input type="submit" class="button-1" value="Sign in"/>
             <input type="hidden" name="client_app" value="Web"/>
+            <input type="submit" class="button-1" value="Sign in"/>
         </ActionForm>
     }
 }

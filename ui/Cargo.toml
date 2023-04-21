@@ -37,7 +37,7 @@ validator = { version = "0.16.0", features = ["derive"] }
 wasm-bindgen = "0.2.84"
 
 [features]
-default = ["hydrate"]
+default = ["hydrate", "ssr"]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
   "leptos/ssr",
