@@ -1,4 +1,4 @@
-use crate::{instance::DbHandle, util::USERNAME_RE};
+use crate::instance::DbHandle;
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_session::Session;
 use actix_web::{
@@ -11,6 +11,7 @@ use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, PgPool};
 use validator::Validate;
+use wordforge_ui::util::USERNAME_RE;
 
 #[derive(Debug, Deserialize, Validate)]
 struct NewUser {

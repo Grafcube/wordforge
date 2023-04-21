@@ -20,7 +20,6 @@ mod activities;
 mod api;
 mod instance;
 mod objects;
-mod util;
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {

@@ -4,6 +4,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod app;
 pub mod components;
+pub mod util;
 
 #[wasm_bindgen]
 pub fn hydrate() {
