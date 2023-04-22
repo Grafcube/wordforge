@@ -7,8 +7,6 @@ pub mod user;
 
 pub fn scope() -> Scope {
     web::scope("/api/v1")
-        .service(account::create)
-        .service(account::login)
         .service(account::validate)
         .service(novel::new_novel)
 }
