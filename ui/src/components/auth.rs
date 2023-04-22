@@ -61,6 +61,7 @@ pub async fn login(
 ) -> Result<String, ServerFnError> {
     use activitypub_federation::config::Data;
     use actix_web::http::StatusCode;
+    use argon2::{Argon2, PasswordVerifier};
     use leptos_actix::ResponseOptions;
     use serde::{Deserialize, Serialize};
     use sqlx::PgPool;
@@ -118,8 +119,8 @@ pub async fn login(
     let password_hash = argon2::PasswordHash::new(&res.password)
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    match argon2::PasswordVerifier::verify_password(
-        &argon2::Argon2::default(),
+    match PasswordVerifier::verify_password(
+        &Argon2::default(),
         info.password.as_bytes(),
         &password_hash,
     ) {
@@ -136,10 +137,10 @@ pub async fn login(
             leptos_actix::redirect(cx, "/");
             Ok(res.apub_id)
         }
-        Err(e) => Err({
+        Err(e) => {
             resp.set_status(StatusCode::UNAUTHORIZED);
-            ServerFnError::ServerError(e.to_string())
-        }),
+            Ok(e.to_string())
+        }
     }
 }
 
@@ -267,16 +268,16 @@ pub async fn register(
 
     let salt = SaltString::generate(&mut OsRng);
     let password = Argon2::default()
-        .hash_password(info.password.into_bytes().as_slice(), &salt)
-        .map_err(ErrorInternalServerError)?
+        .hash_password(info.password.clone().into_bytes().as_slice(), &salt)
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?
         .to_string();
-    let keypair = generate_actor_keypair()?;
+    let keypair =
+        generate_actor_keypair().map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    let new_user = query!(
+    query!(
         r#"INSERT INTO users
            (apub_id, preferred_username, name, inbox, outbox, public_key, private_key, email, password)
-           VALUES (lower($1), $2, $3, $4, $5, $6, $7, $8, $9)
-           RETURNING apub_id, preferred_username, name, published, email"#,
+           VALUES (lower($1), $2, $3, $4, $5, $6, $7, $8, $9)"#,
         format!("{}/user/{}", pool.domain(), info.username.to_lowercase()),
         info.username,
         info.display_name,
@@ -287,9 +288,9 @@ pub async fn register(
         info.email,
         password,
     )
-    .fetch_one(pool.app_data().as_ref())
+    .execute(pool.app_data().as_ref())
     .await
-    .map_err(ErrorBadRequest)?;
+    .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    todo!()
+    login(cx, info.email, info.password, client_app, client_website).await
 }

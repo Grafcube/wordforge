@@ -18,4 +18,5 @@ pub fn register_server_functions() {
     use components::auth::*;
 
     _ = ServerLogin::register();
+    _ = ServerRegister::register();
 }
