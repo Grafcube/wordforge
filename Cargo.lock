@@ -4332,6 +4332,7 @@ dependencies = [
  "actix-session",
  "actix-web",
  "lazy_static",
+ "log",
  "regex",
  "sqlx",
 ]

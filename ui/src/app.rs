@@ -3,7 +3,6 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
-use tracing::info;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ValidationResult {
@@ -27,6 +26,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     view=|cx| {
                         view! { cx, <Home/> }
                     }
+                    ssr=SsrMode::Async
                 />
                 <Route
                     path="/auth"
@@ -143,8 +143,11 @@ async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
     match account::validate(pool.app_data().as_ref(), session).await {
-        UserValidateResult::Ok(v) => Ok(ValidationResult::Ok),
-        UserValidateResult::Unauthorized(v) => Ok(ValidationResult::Unauthorized),
+        UserValidateResult::Ok(_) => Ok(ValidationResult::Ok),
+        UserValidateResult::Unauthorized(v) => {
+            log!("{}", v);
+            Ok(ValidationResult::Unauthorized)
+        }
         UserValidateResult::InternalServerError(v) => {
             resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);
             Ok(ValidationResult::Error(v))
