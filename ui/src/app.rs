@@ -103,7 +103,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                             }
                             ValidationResult::Error(e) => {
                                 set_action_target("/".to_string());
-                                error!("{}", e);
+                                error!("ValidationResult::Error@app::Sidebar: {}", e);
                                 "Something went wrong".to_string()
                             }
                         }
@@ -143,14 +143,8 @@ async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
     match account::validate(pool.app_data().as_ref(), session).await {
-        UserValidateResult::Ok(v) => {
-            info!("{}", v);
-            Ok(ValidationResult::Ok)
-        }
-        UserValidateResult::Unauthorized(v) => {
-            info!("{}", v);
-            Ok(ValidationResult::Unauthorized)
-        }
+        UserValidateResult::Ok(v) => Ok(ValidationResult::Ok),
+        UserValidateResult::Unauthorized(v) => Ok(ValidationResult::Unauthorized),
         UserValidateResult::InternalServerError(v) => {
             resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);
             Ok(ValidationResult::Error(v))
