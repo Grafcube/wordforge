@@ -1,5 +1,4 @@
 use super::novel::DbNovel;
-use crate::instance::DbHandle;
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
@@ -12,6 +11,7 @@ use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use url::Url;
+use wordforge_api::DbHandle;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Chapter {

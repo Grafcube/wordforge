@@ -2,6 +2,15 @@ use crate::components::auth::*;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+use serde::{Deserialize, Serialize};
+use tracing::info;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum ValidationResult {
+    Ok,
+    Unauthorized,
+    Error(String),
+}
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -65,13 +74,41 @@ fn Topbar(cx: Scope) -> impl IntoView {
 
 #[component]
 fn Sidebar(cx: Scope) -> impl IntoView {
+    let (action_target, set_action_target) = create_signal(cx, "/auth".to_string());
+    let action = create_resource(cx, || (), move |_| validate(cx));
+
     view! { cx,
         <div class="sticky flex flex-col items-start p-1 text-xl align-top h-screen left-0 top-0 w-60 dark:bg-gray-700">
             <A
-                href="/auth"
+                href=action_target
                 class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
             >
-                "Sign in / Sign up"
+                <Transition fallback=move || "Spinner">
+                    {move || {
+                        let text = action
+                            .read(cx)
+                            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
+                        let text = match text {
+                            None => return "Spinner".to_string(),
+                            Some(v) => v,
+                        };
+                        match text {
+                            ValidationResult::Ok => {
+                                set_action_target("/create".to_string());
+                                "Create new book".to_string()
+                            }
+                            ValidationResult::Unauthorized => {
+                                set_action_target("/auth".to_string());
+                                "Sign in / Sign up".to_string()
+                            }
+                            ValidationResult::Error(e) => {
+                                set_action_target("/".to_string());
+                                error!("{}", e);
+                                "Something went wrong".to_string()
+                            }
+                        }
+                    }}
+                </Transition>
             </A>
             <A href="/" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
                 "Home"
@@ -83,5 +120,44 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                 "Public"
             </A>
         </div>
+    }
+}
+
+#[server(UserValidate, "/server")]
+async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
+    use activitypub_federation::config::Data;
+    use actix_web::http::StatusCode;
+    use leptos_actix::ResponseOptions;
+    use wordforge_api::{
+        account::{self, UserValidateResult},
+        DbHandle,
+    };
+
+    let resp = use_context::<ResponseOptions>(cx).unwrap();
+    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
+    let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
+        .await
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let session = <actix_session::Session as actix_web::FromRequest>::extract(&req)
+        .await
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+
+    match account::validate(pool.app_data().as_ref(), session).await {
+        UserValidateResult::Ok(v) => {
+            info!("{}", v);
+            Ok(ValidationResult::Ok)
+        }
+        UserValidateResult::Unauthorized(v) => {
+            info!("{}", v);
+            Ok(ValidationResult::Unauthorized)
+        }
+        UserValidateResult::InternalServerError(v) => {
+            resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);
+            Ok(ValidationResult::Error(v))
+        }
+        UserValidateResult::NotFound(v) => {
+            resp.set_status(StatusCode::NOT_FOUND);
+            Ok(ValidationResult::Error(v))
+        }
     }
 }

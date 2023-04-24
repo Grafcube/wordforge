@@ -1,4 +1,4 @@
-use crate::{instance::DbHandle, objects::person::User};
+use crate::objects::person::User;
 use activitypub_federation::{
     config::Data,
     fetch::webfinger::{extract_webfinger_name, webfinger_resolve_actor},
@@ -10,6 +10,7 @@ use actix_web::{
     web, HttpResponse,
 };
 use serde_json::json;
+use wordforge_api::DbHandle;
 
 pub async fn get_user(
     path: web::Path<String>,

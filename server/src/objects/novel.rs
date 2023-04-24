@@ -1,5 +1,5 @@
 use super::chapter::{Chapter, ChapterList};
-use crate::{activities, instance::DbHandle};
+use crate::activities;
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
@@ -18,7 +18,7 @@ use strum::{Display, EnumString};
 use url::Url;
 use uuid::Uuid;
 use validator::Validate;
-use wordforge_ui::util::USERNAME_RE;
+use wordforge_api::{util::USERNAME_RE, DbHandle};
 
 #[derive(Clone, Debug, Display, EnumString, Serialize, Deserialize, PartialEq)]
 pub enum Roles {

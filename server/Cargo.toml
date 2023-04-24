@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+wordforge-api = { path = "../api" }
 wordforge-ui = { path = "../ui", default-features = false, features = ["ssr"] }
 activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust", rev = "99cdbb5", version = "0.4.0", default-features = false, features = [
   "actix-web",

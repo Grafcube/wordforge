@@ -1,4 +1,3 @@
-use crate::instance::DbHandle;
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
@@ -12,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{query_as, PgPool};
 use url::Url;
 use validator::Validate;
-use wordforge_ui::util::USERNAME_RE;
+use wordforge_api::{util::USERNAME_RE, DbHandle};
 
 #[derive(Serialize, Deserialize, Validate)]
 pub struct User {

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::objects::{novel::DbNovel, person::User};
 use activitypub_federation::{
     config::{Data, FederationConfig, UrlVerifier},
@@ -9,11 +7,11 @@ use actix_web::{error::ErrorNotFound, get, web, HttpResponse};
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::json;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::postgres::PgPoolOptions;
+use std::sync::Arc;
 use url::Url;
 use uuid::Uuid;
-
-pub type DbHandle = Arc<PgPool>;
+use wordforge_api::DbHandle;
 
 #[derive(Clone)]
 struct VerifyUrl();

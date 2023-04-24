@@ -1,5 +1,5 @@
 [workspace]
-members = ["server", "ui"]
+members = ["server", "ui", "api"]
 
 [[workspace.metadata.leptos]]
 name = "wordforge"
@@ -8,6 +8,5 @@ lib-package = "wordforge-ui"
 site-root = "target/site"
 style-file = "target/style.css"
 assets-dir = "public"
-site-addr = "127.0.0.1:3000"
 reload-port = 3001
 lib-features = ["hydrate"]

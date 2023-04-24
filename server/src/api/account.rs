@@ -1,4 +1,3 @@
-use crate::instance::DbHandle;
 use activitypub_federation::config::Data;
 use actix_session::Session;
 use actix_web::{
@@ -6,6 +5,7 @@ use actix_web::{
     get, HttpResponse,
 };
 use sqlx::query;
+use wordforge_api::DbHandle;
 
 #[get("/validate")]
 async fn validate(pool: Data<DbHandle>, session: Session) -> actix_web::Result<HttpResponse> {

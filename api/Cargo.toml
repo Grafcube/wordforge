@@ -1,0 +1,23 @@
+[package]
+name = "wordforge-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-session = { version = "0.7.2", features = [
+  "actix",
+  "rand",
+  "redis-actor-session",
+] }
+actix-web = { version = "4.3.0", features = [
+  "openssl",
+  "secure-cookies",
+  "actix-tls",
+] }
+lazy_static = "1.4.0"
+regex = "1.7.1"
+sqlx = { version = "0.6.2", features = [
+  "all-types",
+  "postgres",
+  "runtime-actix-native-tls",
+] }

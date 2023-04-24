@@ -4326,6 +4326,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "wordforge-api"
+version = "0.1.0"
+dependencies = [
+ "actix-session",
+ "actix-web",
+ "lazy_static",
+ "regex",
+ "sqlx",
+]
+
+[[package]]
 name = "wordforge-server"
 version = "0.1.0"
 dependencies = [
@@ -4354,6 +4365,7 @@ dependencies = [
  "url",
  "uuid",
  "validator",
+ "wordforge-api",
  "wordforge-ui",
 ]
 
@@ -4365,19 +4377,18 @@ dependencies = [
  "actix-session",
  "actix-web",
  "argon2",
- "lazy_static",
  "leptos",
  "leptos_actix",
  "leptos_meta",
  "leptos_router",
  "log",
- "regex",
  "serde",
  "serde_json",
  "sqlx",
  "tracing",
  "validator",
  "wasm-bindgen",
+ "wordforge-api",
 ]
 
 [[package]]

@@ -190,7 +190,7 @@ pub async fn register(
     client_app: String,
     client_website: Option<String>,
 ) -> Result<String, ServerFnError> {
-    use crate::util::USERNAME_RE;
+    use wordforge_api::util::USERNAME_RE;
     use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
     use actix_web::http::StatusCode;
     use argon2::{
