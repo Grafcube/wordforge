@@ -29,7 +29,8 @@ fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
     let response = login.value();
     let err = move || {
         response.get().map(|v| match v {
-            Ok(v) => set_errormsg(v),
+            Ok(Ok(_)) => (),
+            Ok(Err(v)) => set_errormsg(v),
             Err(e) => set_errormsg(e.to_string()),
         })
     };
@@ -58,15 +59,13 @@ pub async fn login(
     password: String,
     client_app: String,
     client_website: Option<String>,
-) -> Result<String, ServerFnError> {
+) -> Result<Result<String, String>, ServerFnError> {
     use activitypub_federation::config::Data;
     use actix_web::http::StatusCode;
-    use argon2::{Argon2, PasswordVerifier};
     use leptos_actix::ResponseOptions;
-    use serde::{Deserialize, Serialize};
     use sqlx::PgPool;
     use std::sync::Arc;
-    use validator::Validate;
+    use wordforge_api::account::{self, LoginAuthError, LoginResult};
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
     let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
@@ -77,69 +76,32 @@ pub async fn login(
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    #[derive(Serialize, Deserialize, Validate)]
-    struct LoginData {
-        #[validate(email)]
-        email: String,
-        #[validate(length(min = 8))]
-        password: String,
-        client_app: String,
-        #[validate(url)]
-        client_website: Option<String>,
-    }
-
-    let info = LoginData {
+    match account::login(
+        pool.app_data().as_ref(),
+        session,
         email,
         password,
         client_app,
         client_website,
-    };
-
-    let e = info.validate();
-    if e.is_err() {
-        resp.set_status(StatusCode::BAD_REQUEST);
-        return Ok(e.err().unwrap().to_string());
-    }
-
-    let res = sqlx::query!(
-        "SELECT apub_id, password FROM users WHERE lower(email)=$1",
-        info.email.to_lowercase()
     )
-    .fetch_one(pool.app_data().as_ref())
-    .await;
-
-    let res = match res {
-        Ok(res) => res,
-        Err(_) => {
-            resp.set_status(StatusCode::UNAUTHORIZED);
-            return Ok("Email address is not registered".to_string());
-        }
-    };
-
-    let password_hash = argon2::PasswordHash::new(&res.password)
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-    match PasswordVerifier::verify_password(
-        &Argon2::default(),
-        info.password.as_bytes(),
-        &password_hash,
-    ) {
-        Ok(_) => {
-            session
-                .insert("id", &res.apub_id)
-                .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-            session
-                .insert("client_app", &info.client_app)
-                .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-            session
-                .insert("client_website", &info.client_website)
-                .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    .await
+    {
+        LoginResult::Ok(apub_id) => {
             leptos_actix::redirect(cx, "/");
-            Ok(res.apub_id)
+            Ok(Ok(apub_id))
         }
-        Err(e) => {
+        LoginResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
+        LoginResult::BadRequest(e) => {
+            resp.set_status(StatusCode::BAD_REQUEST);
+            Ok(Err(e))
+        }
+        LoginResult::Unauthorized(LoginAuthError::Email) => {
             resp.set_status(StatusCode::UNAUTHORIZED);
-            Ok(e.to_string())
+            Ok(Err("Email address is not registered".to_string()))
+        }
+        LoginResult::Unauthorized(LoginAuthError::Password) => {
+            resp.set_status(StatusCode::UNAUTHORIZED);
+            Ok(Err("Wrong password".to_string()))
         }
     }
 }
@@ -150,7 +112,8 @@ fn Register(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
     let response = register.value();
     let err = move || {
         response.get().map(|v| match v {
-            Ok(v) => set_errormsg(v),
+            Ok(Ok(_)) => (),
+            Ok(Err(v)) => set_errormsg(v),
             Err(e) => set_errormsg(e.to_string()),
         })
     };
@@ -189,108 +152,43 @@ pub async fn register(
     password: String,
     client_app: String,
     client_website: Option<String>,
-) -> Result<String, ServerFnError> {
-    use wordforge_api::util::USERNAME_RE;
-    use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+) -> Result<Result<String, String>, ServerFnError> {
+    use activitypub_federation::config::Data;
     use actix_web::http::StatusCode;
-    use argon2::{
-        password_hash::{rand_core::OsRng, SaltString},
-        Argon2, PasswordHasher,
-    };
     use leptos_actix::ResponseOptions;
-    use serde::{Deserialize, Serialize};
-    use sqlx::{query, PgPool};
-    use std::sync::Arc;
-    use validator::Validate;
+    use wordforge_api::{
+        account::{self, RegisterAuthError, RegistrationResult},
+        DbHandle,
+    };
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
     let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
-    let pool = <Data<Arc<PgPool>> as actix_web::FromRequest>::extract(&req)
+    let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    #[derive(Debug, Deserialize, Serialize, Validate)]
-    struct NewUser {
-        display_name: String,
-        #[validate(regex(path = "USERNAME_RE", message = "Invalid username"))]
-        username: String,
-        #[validate(email)]
-        email: String,
-        #[validate(length(min = 8))]
-        password: String,
-    }
-
-    let info = NewUser {
+    match account::register(
+        pool,
         display_name,
         username,
-        email,
-        password,
-    };
-
-    let e = info.validate();
-    if e.is_err() {
-        resp.set_status(StatusCode::BAD_REQUEST);
-        return Ok(e.err().unwrap().to_string());
-    }
-
-    match query!(
-        r#"SELECT
-           EXISTS(SELECT 1 FROM users WHERE preferred_username = $1) AS username,
-           EXISTS(SELECT 1 FROM users WHERE email = $2) AS email"#,
-        info.username.to_lowercase(),
-        info.email.to_lowercase()
+        email.clone(),
+        password.clone(),
     )
-    .fetch_one(pool.app_data().as_ref())
     .await
     {
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-        Ok(v) => {
-            match v.email {
-                None => (),
-                Some(e) => {
-                    if e {
-                        resp.set_status(StatusCode::BAD_REQUEST);
-                        return Ok("Email is already registered".to_string());
-                    }
-                }
-            };
-            match v.username {
-                None => (),
-                Some(u) => {
-                    if u {
-                        resp.set_status(StatusCode::BAD_REQUEST);
-                        return Ok("Username is already is use".to_string());
-                    }
-                }
-            };
+        RegistrationResult::Ok => login(cx, email, password, client_app, client_website).await,
+        RegistrationResult::BadRequest(e) => {
+            resp.set_status(StatusCode::BAD_REQUEST);
+            Ok(Err(e))
         }
+        RegistrationResult::Conflict(RegisterAuthError::Email) => {
+            resp.set_status(StatusCode::CONFLICT);
+            Ok(Err("Email is already registered".to_string()))
+        }
+        RegistrationResult::Conflict(RegisterAuthError::Username) => {
+            resp.set_status(StatusCode::BAD_REQUEST);
+            Ok(Err("Username is taken".to_string()))
+        }
+        RegistrationResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
     }
-
-    let salt = SaltString::generate(&mut OsRng);
-    let password = Argon2::default()
-        .hash_password(info.password.clone().into_bytes().as_slice(), &salt)
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?
-        .to_string();
-    let keypair =
-        generate_actor_keypair().map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-    query!(
-        r#"INSERT INTO users
-           (apub_id, preferred_username, name, inbox, outbox, public_key, private_key, email, password)
-           VALUES (lower($1), $2, $3, $4, $5, $6, $7, $8, $9)"#,
-        format!("{}/user/{}", pool.domain(), info.username.to_lowercase()),
-        info.username,
-        info.display_name,
-        format!("{}/user/{}/inbox", pool.domain(), info.username.to_lowercase()),
-        format!("{}/user/{}/outbox", pool.domain(), info.username.to_lowercase()),
-        keypair.public_key,
-        keypair.private_key,
-        info.email,
-        password,
-    )
-    .execute(pool.app_data().as_ref())
-    .await
-    .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-    login(cx, info.email, info.password, client_app, client_website).await
 }

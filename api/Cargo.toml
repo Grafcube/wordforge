@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust", rev = "99cdbb5", version = "0.4.0", default-features = false, features = [
+  "actix-web",
+] }
 actix-session = { version = "0.7.2", features = [
   "actix",
   "rand",
@@ -14,11 +17,14 @@ actix-web = { version = "4.3.0", features = [
   "secure-cookies",
   "actix-tls",
 ] }
+argon2 = { version = "0.4.1", features = ["std"] }
 lazy_static = "1.4.0"
 log = "0.4.17"
 regex = "1.7.1"
+serde = { version = "1.0.152", features = ["derive"] }
 sqlx = { version = "0.6.2", features = [
   "all-types",
   "postgres",
   "runtime-actix-native-tls",
 ] }
+validator = { version = "0.16.0", features = ["derive"] }
