@@ -1,3 +1,4 @@
+use crate::components::errorview::*;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -16,11 +17,6 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
             <ErrorView message=errormsg/>
         </div>
     }
-}
-
-#[component]
-fn ErrorView(cx: Scope, message: ReadSignal<String>) -> impl IntoView {
-    view! { cx, <p class="text-red-800">{message}</p> }
 }
 
 #[component]

@@ -1,4 +1,4 @@
-use crate::components::auth::*;
+use crate::components::{auth::*, novel::*};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -32,6 +32,12 @@ pub fn App(cx: Scope) -> impl IntoView {
                     path="/auth"
                     view=|cx| {
                         view! { cx, <Auth/> }
+                    }
+                />
+                <Route
+                    path="/create"
+                    view=|cx| {
+                        view! { cx, <CreateBook/> }
                     }
                 />
             </Routes>

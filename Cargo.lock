@@ -4338,6 +4338,7 @@ dependencies = [
  "regex",
  "serde",
  "sqlx",
+ "strum",
  "validator",
 ]
 
@@ -4366,7 +4367,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "strum",
  "url",
  "uuid",
  "validator",
@@ -4389,6 +4389,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "strum",
  "tracing",
  "wasm-bindgen",
  "wordforge-api",

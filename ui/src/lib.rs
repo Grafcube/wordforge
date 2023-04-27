@@ -14,9 +14,11 @@ pub fn hydrate() {
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() {
-    use components::auth::*;
+    use components::{auth::*, novel::*};
 
     _ = ServerLogin::register();
     _ = ServerRegister::register();
     _ = UserValidate::register();
+    _ = CreateNovel::register();
+    _ = GetGenres::register();
 }

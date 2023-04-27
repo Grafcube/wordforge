@@ -27,4 +27,5 @@ sqlx = { version = "0.6.2", features = [
   "postgres",
   "runtime-actix-native-tls",
 ] }
+strum = { version = "0.24.1", features = ["derive"] }
 validator = { version = "0.16.0", features = ["derive"] }

@@ -1,7 +1,7 @@
 use crate::{
     activities::{self, add::NewArticle},
     objects::{
-        novel::{DbNovel, Genres, NovelAcceptedActivities, Roles},
+        novel::{DbNovel, NovelAcceptedActivities},
         person::User,
     },
 };
@@ -27,7 +27,10 @@ use serde_json::json;
 use sqlx::{query, PgPool};
 use url::Url;
 use uuid::Uuid;
-use wordforge_api::DbHandle;
+use wordforge_api::{
+    enums::{Genres, Roles},
+    DbHandle,
+};
 
 #[derive(Serialize, Deserialize)]
 struct NewNovel {
