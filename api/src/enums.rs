@@ -3,24 +3,25 @@ use strum::{Display, EnumIter, EnumString};
 
 #[derive(Clone, Debug, Display, EnumString, EnumIter, Serialize, Deserialize, PartialEq)]
 pub enum Genres {
+    Action,
     Adventure,
-    Alternative,
-    Biography,
     Comedy,
-    Crime,
-    Education,
+    Drama,
+    Educational,
     Fantasy,
     History,
     Horror,
-    Humor,
     Mystery,
+    #[strum(serialize = "Non-Fiction")]
     NonFiction,
     Romance,
-    ScienceFiction,
+    #[strum(serialize = "Sci-Fi")]
+    SciFi,
+    #[strum(serialize = "Slice of Life")]
+    SliceOfLife,
     Sports,
     Superhero,
     Thriller,
-    Western,
     Other,
 }
 

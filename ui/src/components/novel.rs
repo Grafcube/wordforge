@@ -17,6 +17,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
         }
     };
     let genres = create_resource(cx, || (), move |_| get_genres());
+    let genre = create_rw_signal(cx, String::new());
 
     view! { cx,
         <Body class="main-screen p-2"/>
@@ -45,24 +46,17 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                     ></textarea>
                     <FloatingLabel target="summary">"Summary"</FloatingLabel>
                 </div>
+                <input type="hidden" name="genre" value=move || genre.get()/>
                 <Suspense fallback=move || {
-                    view! { cx,
-                        <FilterListbox name="suspense" label="Loading genres" items=vec!["Loading".to_string()]/>
-                    }
+                    view! { cx, <span>"Loading..."</span> }
                 }>
                     {move || match genres.read(cx) {
                         None => {
-                            view! { cx,
-                                <FilterListbox
-                                    name="suspense"
-                                    label="Loading genres"
-                                    items=vec!["Loading".to_string()]
-                                />
-                            }
+                            view! { cx, <span>"Loading..."</span> }
                                 .into_view(cx)
                         }
                         Some(Ok(items)) => {
-                            view! { cx, <FilterListbox name="genres" label="Genres" items=items/> }
+                            view! { cx, <FilterListbox option=genre name="genres" label="Genres" items=items/> }
                                 .into_view(cx)
                         }
                         Some(Err(e)) => {

@@ -11,5 +11,5 @@
 }
 
 .basic-input {
-  @apply block px-2.5 pb-2.5 pt-4 rounded-xl appearance-none text-xl w-full dark:bg-gray-800 disabled:dark:bg-gray-600 dark:text-white dark:border-gray-600 dark:focus:border-purple-500 focus:outline-purple-600 focus:ring-0 focus:border-purple-600;
+  @apply block px-2.5 pb-2.5 pt-6 rounded-xl appearance-none text-xl w-full dark:bg-gray-800 disabled:dark:bg-gray-600 dark:text-white dark:border-gray-600 dark:focus:border-purple-500 focus:outline-purple-600 focus:ring-0 focus:border-purple-600;
 }
