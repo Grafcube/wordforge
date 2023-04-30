@@ -7,6 +7,7 @@ use leptos_router::*;
 pub fn CreateBook(cx: Scope) -> impl IntoView {
     let create = create_server_action::<CreateNovel>(cx);
     let summary = create_node_ref::<Textarea>(cx);
+    let (title, set_title) = create_signal(cx, String::new());
     let title_area_handler = move |e: KeyboardEvent| {
         if e.key() == "Enter" {
             e.prevent_default();
@@ -15,6 +16,18 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                 .focus()
                 .expect("summary focus");
         }
+    };
+    let title_input_handler = move |ev| {
+        let re = regex::Regex::new(r#"[\r\n]+"#).unwrap();
+        let value = event_target_value(&ev);
+        let title = re.replace_all(&value, "");
+        set_title(title.to_string());
+        let target = event_target::<web_sys::HtmlElement>(&ev);
+        let style = target.style();
+        style.set_property("height", "auto").unwrap();
+        style
+            .set_property("height", &format!("{}px", target.scroll_height()))
+            .unwrap();
     };
     let genres = create_resource(cx, || (), move |_| get_genres());
     let genre = create_rw_signal(cx, String::new());
@@ -33,6 +46,9 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         rows=1
                         wrap="soft"
                         on:keydown=title_area_handler
+                        prop:value=title
+                        on:input=title_input_handler
+                        on:paste=title_input_handler
                         required
                     ></textarea>
                     <FloatingLabel target="title">"Title"</FloatingLabel>
@@ -56,7 +72,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                                 .into_view(cx)
                         }
                         Some(Ok(items)) => {
-                            view! { cx, <FilterListbox option=genre name="genres" label="Genres" items=items/> }
+                            view! { cx, <FilterListbox option=genre name="genres" label="Genre" items=items/> }
                                 .into_view(cx)
                         }
                         Some(Err(e)) => {

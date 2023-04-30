@@ -1,6 +1,7 @@
-use leptos::*;
+use leptos::{ev::KeyboardEvent, *};
 use leptos_meta::*;
 use leptos_router::*;
+use wasm_bindgen::JsCast;
 
 #[component]
 pub fn FilterListbox(
@@ -10,8 +11,10 @@ pub fn FilterListbox(
     label: &'static str,
     items: Vec<String>,
 ) -> impl IntoView {
+    let dropdown = create_node_ref::<html::Div>(cx);
     let (menu, toggle_menu) = create_signal(cx, false);
     let (filter, set_filter) = create_signal(cx, String::new());
+    let filter_field = create_node_ref::<html::Input>(cx);
     let filter_items = move || {
         let term = filter().to_lowercase();
         let term = term.as_str();
@@ -35,25 +38,81 @@ pub fn FilterListbox(
     };
     let build_filter = move || {
         filter_items()
-            .iter()
+            .into_iter()
             .map(|i| {
-                let val = i.clone();
-                let val1 = i.clone(); // wtf
                 view! { cx,
-                    <li
-                        on:click=move |_| {
-                            option.set(val.clone());
-                            toggle_menu(false);
+                    <button
+                        on:keydown=move |ev: KeyboardEvent| {
+                            match ev.key().as_str() {
+                                "Home" => {
+                                    ev.prevent_default();
+                                    if let Some(Ok(el))
+                                        = dropdown()
+                                            .unwrap()
+                                            .first_element_child()
+                                            .map(|sibling| sibling.dyn_into::<web_sys::HtmlElement>())
+                                    {
+                                        let _ = el.focus();
+                                    }
+                                }
+                                "ArrowUp" => {
+                                    ev.prevent_default();
+                                    if let Some(Ok(sibling))
+                                        = event_target::<web_sys::HtmlElement>(&ev)
+                                            .previous_element_sibling()
+                                            .map(|sibling| sibling.dyn_into::<web_sys::HtmlElement>())
+                                    {
+                                        let _ = sibling.focus();
+                                    }
+                                }
+                                "ArrowDown" => {
+                                    ev.prevent_default();
+                                    if let Some(Ok(sibling))
+                                        = event_target::<web_sys::HtmlElement>(&ev)
+                                            .next_element_sibling()
+                                            .map(|sibling| sibling.dyn_into::<web_sys::HtmlElement>())
+                                    {
+                                        let _ = sibling.focus();
+                                    }
+                                }
+                                "End" => {
+                                    ev.prevent_default();
+                                    if let Some(Ok(el))
+                                        = dropdown()
+                                            .unwrap()
+                                            .last_element_child()
+                                            .map(|sibling| sibling.dyn_into::<web_sys::HtmlElement>())
+                                    {
+                                        let _ = el.focus();
+                                    }
+                                }
+                                "/" => {
+                                    ev.prevent_default();
+                                    filter_field().unwrap().focus().unwrap();
+                                }
+                                _ => {}
+                            }
                         }
-                        value=i
-                        class=move || {
-                            let class = "flex align-middle justify-start p-2 m-1 cursor-pointer rounded-md hover:dark:bg-gray-800"
-                                .to_string();
-                            if option.get() == val1 { format!("{class} dark:bg-gray-900") } else { class }
+                        on:click={
+                            let val = i.clone();
+                            move |ev| {
+                                ev.prevent_default();
+                                option.set(val.clone());
+                                toggle_menu(false);
+                            }
+                        }
+                        value=i.clone()
+                        class={
+                            let val = i.clone();
+                            move || {
+                                let class = "flex align-middle justify-start p-2 m-1 cursor-pointer rounded-md hover:dark:bg-gray-800 focus:dark:bg-gray-800"
+                                    .to_string();
+                                if option.get() == val { format!("{class} dark:bg-gray-900") } else { class }
+                            }
                         }
                     >
                         {i}
-                    </li>
+                    </button>
                 }
             })
             .collect::<Vec<_>>()
@@ -66,6 +125,9 @@ pub fn FilterListbox(
                 on:click=move |_| {
                     set_filter(String::new());
                     toggle_menu(!menu());
+                    if menu() {
+                        filter_field().unwrap().focus().unwrap();
+                    }
                 }
             >
                 <label
@@ -82,18 +144,43 @@ pub fn FilterListbox(
                 </span>
             </div>
             <Show when=menu fallback=|_| ()>
-                <ul class="absolute z-10 text-left w-fit dark:bg-gray-700 rounded-xl overflow-y-auto max-h-80 text-lg">
+                <div
+                    class="absolute flex flex-col overflow-y-auto z-10 text-left justify-items-stretch w-fit dark:bg-gray-700 rounded-xl max-h-80 text-lg"
+                    on:keydown=move |ev: KeyboardEvent| {
+                        if ev.key().as_str() == "Escape" {
+                            ev.prevent_default();
+                            toggle_menu(false);
+                        }
+                    }
+                >
                     <input
                         class="dark:bg-gray-600 m-2 p-2 rounded-xl text-sl w-fit"
                         type="search"
                         placeholder="Filter"
                         name="filter"
                         autocomplete="off"
+                        autofocus="on"
                         prop:value=filter
-                        on:change=move |ev| set_filter(event_target_value(&ev))
+                        node_ref=filter_field
+                        on:input=move |ev| set_filter(event_target_value(&ev))
+                        on:keydown=move |ev: KeyboardEvent| {
+                            if ev.key().as_str() == "ArrowDown" {
+                                ev.prevent_default();
+                                if let Some(Ok(el))
+                                    = dropdown()
+                                        .unwrap()
+                                        .first_element_child()
+                                        .map(|sibling| sibling.dyn_into::<web_sys::HtmlElement>())
+                                {
+                                    let _ = el.focus();
+                                }
+                            }
+                        }
                     />
-                    {build_filter.clone()}
-                </ul>
+                    <div node_ref=dropdown class="flex flex-col overflow-y-auto">
+                        {build_filter.clone()}
+                    </div>
+                </div>
             </Show>
         </div>
     }

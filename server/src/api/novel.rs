@@ -65,11 +65,8 @@ async fn create_novel(
     apub_id: String,
     conn: &PgPool,
 ) -> actix_web::Result<Uuid> {
-    let title = info
-        .title
-        .trim()
-        .replace("\r\n", "")
-        .replace(['\n', '\r'], "");
+    let re = regex::Regex::new(r#"[\r\n]+"#).unwrap();
+    let title = re.replace_all(info.title.trim(), "");
     let lang = match Language::from_name(info.lang.as_str()) {
         None => return Err(ErrorBadRequest("Invalid language")),
         Some(l) => l.to_639_1(),
