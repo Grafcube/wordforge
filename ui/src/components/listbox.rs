@@ -177,7 +177,7 @@ pub fn FilterListbox(
                             }
                         }
                     />
-                    <div node_ref=dropdown class="flex flex-col overflow-y-auto">
+                    <div tabindex=-1 node_ref=dropdown class="flex flex-col overflow-y-auto">
                         {build_filter.clone()}
                     </div>
                 </div>
