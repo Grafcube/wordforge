@@ -1,5 +1,9 @@
 use crate::components::{basicinput::*, listbox::*};
-use leptos::{ev::KeyboardEvent, html::Textarea, *};
+use leptos::{
+    ev::KeyboardEvent,
+    html::{Div, Textarea},
+    *,
+};
 use leptos_meta::*;
 use leptos_router::*;
 
@@ -7,21 +11,14 @@ use leptos_router::*;
 pub fn CreateBook(cx: Scope) -> impl IntoView {
     let create = create_server_action::<CreateNovel>(cx);
     let summary = create_node_ref::<Textarea>(cx);
+    let cw = create_node_ref::<Div>(cx);
     let (title, set_title) = create_signal(cx, String::new());
-    let title_area_handler = move |e: KeyboardEvent| {
-        if e.key() == "Enter" {
-            e.prevent_default();
-            summary()
-                .expect("summary field ref")
-                .focus()
-                .expect("summary focus");
-        }
-    };
-    let title_input_handler = move |ev| {
+    let (tags, set_tags) = create_signal(cx, String::new());
+    let line_input_handler = move |ev, setter: WriteSignal<String>| {
         let re = regex::Regex::new(r#"[\r\n]+"#).unwrap();
         let value = event_target_value(&ev);
-        let title = re.replace_all(&value, "");
-        set_title(title.to_string());
+        let value = re.replace_all(&value, "");
+        setter(value.to_string());
         let target = event_target::<web_sys::HtmlElement>(&ev);
         let style = target.style();
         style.set_property("height", "auto").unwrap();
@@ -49,10 +46,15 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         name="title"
                         rows=1
                         wrap="soft"
-                        on:keydown=title_area_handler
+                        on:keydown=move |ev: KeyboardEvent| {
+                            if ev.key() == "Enter" {
+                                ev.prevent_default();
+                                summary().unwrap().focus().unwrap();
+                            }
+                        }
                         prop:value=title
-                        on:input=title_input_handler
-                        on:paste=title_input_handler
+                        on:input=move |ev| line_input_handler(ev, set_title)
+                        on:paste=move |ev| line_input_handler(ev, set_title)
                         required
                     ></textarea>
                     <FloatingLabel target="title">"Title"</FloatingLabel>
@@ -79,7 +81,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                             view! { cx,
                                 <FilterListbox
                                     option=genre
-                                    name="genres"
+                                    name="genre"
                                     label="Genre"
                                     initial="Select a genre"
                                     items=items
@@ -107,7 +109,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                             view! { cx,
                                 <FilterListbox
                                     option=role
-                                    name="roles"
+                                    name="role"
                                     label="Your role"
                                     initial="Select your role"
                                     items=items
@@ -135,7 +137,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                             view! { cx,
                                 <FilterListbox
                                     option=lang
-                                    name="langs"
+                                    name="lang"
                                     label="Language"
                                     initial="Select the book's language"
                                     items=items
@@ -150,6 +152,26 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         }
                     }}
                 </Suspense>
+                <div class="relative">
+                    <textarea
+                        class="basic-input max-h-40 overflow-y-auto resize-none peer"
+                        placeholder=""
+                        name="tags"
+                        rows=1
+                        wrap="soft"
+                        on:keydown=move |ev: KeyboardEvent| {
+                            if ev.key() == "Enter" {
+                                ev.prevent_default();
+                                cw().unwrap().focus().unwrap();
+                            }
+                        }
+                        prop:value=tags
+                        on:input=move |ev| line_input_handler(ev, set_tags)
+                        on:paste=move |ev| line_input_handler(ev, set_tags)
+                    ></textarea>
+                    <FloatingLabel target="tags">"Tags"</FloatingLabel>
+                </div>
+                <div node_ref=cw>"TODO: Toggle"</div>
                 <button class="button-1" type="submit">
                     "Create"
                 </button>

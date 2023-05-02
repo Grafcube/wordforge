@@ -1,6 +1,4 @@
 use leptos::{ev::KeyboardEvent, *};
-use leptos_meta::*;
-use leptos_router::*;
 use wasm_bindgen::JsCast;
 
 #[component]
@@ -13,7 +11,7 @@ pub fn FilterListbox(
     items: Vec<String>,
 ) -> impl IntoView {
     let dropdown = create_node_ref::<html::Div>(cx);
-    let (menu, toggle_menu) = create_signal(cx, false);
+    let (menu, show_menu) = create_signal(cx, false);
     let (filter, set_filter) = create_signal(cx, String::new());
     let filter_field = create_node_ref::<html::Input>(cx);
     let filter_items = move || {
@@ -99,7 +97,7 @@ pub fn FilterListbox(
                             move |ev| {
                                 ev.prevent_default();
                                 option.set(val.clone());
-                                toggle_menu(false);
+                                show_menu(false);
                             }
                         }
                         value=i.clone()
@@ -125,7 +123,7 @@ pub fn FilterListbox(
                 class="flex items-start dark:bg-gray-800 rounded-md w-full p-2 cursor-pointer"
                 on:click=move |_| {
                     set_filter(String::new());
-                    toggle_menu(!menu());
+                    show_menu(!menu());
                     if menu() {
                         filter_field().unwrap().focus().unwrap();
                     }
@@ -150,9 +148,10 @@ pub fn FilterListbox(
                     on:keydown=move |ev: KeyboardEvent| {
                         if ev.key().as_str() == "Escape" {
                             ev.prevent_default();
-                            toggle_menu(false);
+                            show_menu(false);
                         }
                     }
+                    on:blur=move |_| show_menu(false)
                 >
                     <input
                         class="dark:bg-gray-600 m-2 p-2 rounded-xl text-sl w-fit"
@@ -160,7 +159,6 @@ pub fn FilterListbox(
                         placeholder="Filter"
                         name="filter"
                         autocomplete="off"
-                        autofocus="on"
                         prop:value=filter
                         node_ref=filter_field
                         on:input=move |ev| set_filter(event_target_value(&ev))
