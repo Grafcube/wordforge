@@ -9,6 +9,7 @@ pub fn FilterListbox(
     option: RwSignal<String>,
     name: &'static str,
     label: &'static str,
+    initial: &'static str,
     items: Vec<String>,
 ) -> impl IntoView {
     let dropdown = create_node_ref::<html::Div>(cx);
@@ -138,7 +139,7 @@ pub fn FilterListbox(
                 </label>
                 <span class="text-left pointer-events-none">
                     {move || match option.get() {
-                        v if v.is_empty() => "Select a genre".to_string(),
+                        v if v.is_empty() => initial.to_string(),
                         v => v,
                     }}
                 </span>

@@ -21,6 +21,10 @@ actix-web = { version = "4.3.0", features = [
   "secure-cookies",
   "actix-tls",
 ], optional = true }
+isolang = { version = "2.2.0", features = [
+  "serde",
+  "list_languages",
+], optional = true }
 leptos = { version = "0.2.5", default-features = false, features = ["serde"] }
 leptos_actix = { version = "0.2.5", optional = true }
 leptos_meta = { version = "0.2.5", default-features = false }
@@ -50,6 +54,7 @@ ssr = [
   "dep:activitypub_federation",
   "dep:actix-session",
   "dep:actix-web",
+  "dep:isolang",
   "dep:sqlx",
   "dep:strum",
 ]

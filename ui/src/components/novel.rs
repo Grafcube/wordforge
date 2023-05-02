@@ -31,6 +31,10 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
     };
     let genres = create_resource(cx, || (), move |_| get_genres());
     let genre = create_rw_signal(cx, String::new());
+    let roles = create_resource(cx, || (), move |_| get_roles());
+    let role = create_rw_signal(cx, String::new());
+    let langs = create_resource(cx, || (), move |_| get_langs());
+    let lang = create_rw_signal(cx, String::new());
 
     view! { cx,
         <Body class="main-screen p-2"/>
@@ -72,7 +76,71 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                                 .into_view(cx)
                         }
                         Some(Ok(items)) => {
-                            view! { cx, <FilterListbox option=genre name="genres" label="Genre" items=items/> }
+                            view! { cx,
+                                <FilterListbox
+                                    option=genre
+                                    name="genres"
+                                    label="Genre"
+                                    initial="Select a genre"
+                                    items=items
+                                />
+                            }
+                                .into_view(cx)
+                        }
+                        Some(Err(e)) => {
+                            error!("{}", e.to_string());
+                            view! { cx, <span>"Something went wrong"</span> }
+                                .into_view(cx)
+                        }
+                    }}
+                </Suspense>
+                <input type="hidden" name="role" value=move || role.get()/>
+                <Suspense fallback=move || {
+                    view! { cx, <span>"Loading..."</span> }
+                }>
+                    {move || match roles.read(cx) {
+                        None => {
+                            view! { cx, <span>"Loading..."</span> }
+                                .into_view(cx)
+                        }
+                        Some(Ok(items)) => {
+                            view! { cx,
+                                <FilterListbox
+                                    option=role
+                                    name="roles"
+                                    label="Your role"
+                                    initial="Select your role"
+                                    items=items
+                                />
+                            }
+                                .into_view(cx)
+                        }
+                        Some(Err(e)) => {
+                            error!("{}", e.to_string());
+                            view! { cx, <span>"Something went wrong"</span> }
+                                .into_view(cx)
+                        }
+                    }}
+                </Suspense>
+                <input type="hidden" name="lang" value=move || lang.get()/>
+                <Suspense fallback=move || {
+                    view! { cx, <span>"Loading..."</span> }
+                }>
+                    {move || match langs.read(cx) {
+                        None => {
+                            view! { cx, <span>"Loading..."</span> }
+                                .into_view(cx)
+                        }
+                        Some(Ok(items)) => {
+                            view! { cx,
+                                <FilterListbox
+                                    option=lang
+                                    name="langs"
+                                    label="Language"
+                                    initial="Select the book's language"
+                                    items=items
+                                />
+                            }
                                 .into_view(cx)
                         }
                         Some(Err(e)) => {
@@ -101,4 +169,19 @@ pub async fn get_genres() -> Result<Vec<String>, ServerFnError> {
     use wordforge_api::enums::Genres;
 
     Ok(Genres::iter().map(|g| g.to_string()).collect())
+}
+
+#[server(GetRoles, "/server")]
+pub async fn get_roles() -> Result<Vec<String>, ServerFnError> {
+    use strum::IntoEnumIterator;
+    use wordforge_api::enums::Roles;
+
+    Ok(Roles::iter().map(|g| g.to_string()).collect())
+}
+
+#[server(GetLangs, "/server")]
+pub async fn get_langs() -> Result<Vec<String>, ServerFnError> {
+    Ok(isolang::languages()
+        .filter_map(|lang| lang.to_639_1().map(|_| lang.to_name().to_string()))
+        .collect())
 }

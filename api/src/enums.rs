@@ -35,6 +35,7 @@ pub enum Roles {
     Inker,
     Colorist,
     Letterer,
+    #[strum(serialize = "Cover Artist")]
     CoverArtist,
     Photographer,
     Editor,
