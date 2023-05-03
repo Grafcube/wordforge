@@ -1,9 +1,5 @@
-use crate::components::{basicinput::*, listbox::*};
-use leptos::{
-    ev::KeyboardEvent,
-    html::{Div, Textarea},
-    *,
-};
+use crate::components::{basicinput::*, listbox::*, toggle::*};
+use leptos::{ev::KeyboardEvent, html::*, *};
 use leptos_meta::*;
 use leptos_router::*;
 
@@ -11,7 +7,7 @@ use leptos_router::*;
 pub fn CreateBook(cx: Scope) -> impl IntoView {
     let create = create_server_action::<CreateNovel>(cx);
     let summary = create_node_ref::<Textarea>(cx);
-    let cw = create_node_ref::<Div>(cx);
+    let cw = create_node_ref::<Input>(cx);
     let (title, set_title) = create_signal(cx, String::new());
     let (tags, set_tags) = create_signal(cx, String::new());
     let line_input_handler = move |ev, setter: WriteSignal<String>| {
@@ -171,7 +167,11 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                     ></textarea>
                     <FloatingLabel target="tags">"Tags"</FloatingLabel>
                 </div>
-                <div node_ref=cw>"TODO: Toggle"</div>
+                <div class="flex justify-start">
+                    <Toggle name="cw" node_ref=cw>
+                        "Content warning"
+                    </Toggle>
+                </div>
                 <button class="button-1" type="submit">
                     "Create"
                 </button>
