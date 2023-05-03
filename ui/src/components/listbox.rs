@@ -1,4 +1,5 @@
 use leptos::{ev::KeyboardEvent, *};
+use leptos_icons::*;
 use wasm_bindgen::JsCast;
 
 #[component]
@@ -121,7 +122,7 @@ pub fn FilterListbox(
     view! { cx,
         <div node_ref=listbox>
             <div
-                class="flex items-start dark:bg-gray-800 rounded-md w-full p-2 cursor-pointer"
+                class="flex items-start align-middle dark:bg-gray-800 rounded-md w-full p-2 cursor-pointer"
                 on:click=move |_| {
                     set_filter(String::new());
                     show_menu(!menu());
@@ -142,6 +143,23 @@ pub fn FilterListbox(
                         v => v,
                     }}
                 </span>
+                {move || {
+                    if menu() {
+                        view! { cx,
+                            <Icon
+                                icon=HiIcon::HiChevronUpSolidLg
+                                class="dark:stroke-white my-auto ml-auto h-4 w-4 pointer-events-none"
+                            />
+                        }
+                    } else {
+                        view! { cx,
+                            <Icon
+                                icon=HiIcon::HiChevronDownSolidLg
+                                class="dark:stroke-white my-auto ml-auto h-4 w-4 pointer-events-none"
+                            />
+                        }
+                    }
+                }}
             </div>
             <Show when=menu fallback=|_| ()>
                 <div

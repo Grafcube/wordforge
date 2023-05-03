@@ -27,6 +27,10 @@ isolang = { version = "2.2.0", features = [
 ], optional = true }
 leptos = { version = "0.2.5", default-features = false, features = ["serde"] }
 leptos_actix = { version = "0.2.5", optional = true }
+leptos_icons = { version = "0.0.9", features = [
+  "HiChevronDownSolidLg",
+  "HiChevronUpSolidLg",
+], optional = true }
 leptos_meta = { version = "0.2.5", default-features = false }
 leptos_router = "0.2.5"
 log = "0.4.17"
@@ -44,12 +48,18 @@ web-sys = { version = "0.3.61", features = ["CssStyleDeclaration"] }
 
 [features]
 default = ["hydrate", "ssr"]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+hydrate = [
+  "leptos/hydrate",
+  "leptos_meta/hydrate",
+  "leptos_router/hydrate",
+  "leptos_icons/hydrate",
+]
 ssr = [
   "dep:wordforge-api",
   "leptos/ssr",
   "leptos_meta/ssr",
   "leptos_router/ssr",
+  "leptos_icons/ssr",
   "dep:leptos_actix",
   "dep:activitypub_federation",
   "dep:actix-session",
