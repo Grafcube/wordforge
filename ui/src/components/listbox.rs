@@ -11,6 +11,7 @@ pub fn FilterListbox(
     items: Vec<String>,
 ) -> impl IntoView {
     let dropdown = create_node_ref::<html::Div>(cx);
+    let listbox = create_node_ref::<html::Div>(cx);
     let (menu, show_menu) = create_signal(cx, false);
     let (filter, set_filter) = create_signal(cx, String::new());
     let filter_field = create_node_ref::<html::Input>(cx);
@@ -118,7 +119,7 @@ pub fn FilterListbox(
     };
 
     view! { cx,
-        <div>
+        <div node_ref=listbox>
             <div
                 class="flex items-start dark:bg-gray-800 rounded-md w-full p-2 cursor-pointer"
                 on:click=move |_| {
@@ -144,14 +145,20 @@ pub fn FilterListbox(
             </div>
             <Show when=menu fallback=|_| ()>
                 <div
-                    class="absolute flex flex-col overflow-y-auto z-10 text-left justify-items-stretch w-fit dark:bg-gray-700 rounded-xl max-h-80 text-lg"
+                    class="absolute flex flex-col overflow-y-auto z-50 text-left justify-items-stretch w-fit dark:bg-gray-700 rounded-xl max-h-80 text-lg"
                     on:keydown=move |ev: KeyboardEvent| {
                         if ev.key().as_str() == "Escape" {
                             ev.prevent_default();
                             show_menu(false);
                         }
                     }
-                    on:blur=move |_| show_menu(false)
+                    on:focusout=move |ev| {
+                        let target = listbox().unwrap();
+                        let receiver = ev.related_target().map(|r| r.unchecked_into::<web_sys::Node>());
+                        if !target.contains(receiver.as_ref()) {
+                            show_menu(false);
+                        }
+                    }
                 >
                     <input
                         class="dark:bg-gray-600 m-2 p-2 rounded-xl text-sl w-fit"
