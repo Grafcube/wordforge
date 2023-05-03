@@ -164,7 +164,6 @@ pub fn FilterListbox(
                         class="dark:bg-gray-600 m-2 p-2 rounded-xl text-sl w-fit"
                         type="search"
                         placeholder="Filter"
-                        name="filter"
                         autocomplete="off"
                         prop:value=filter
                         node_ref=filter_field

@@ -1,9 +1,10 @@
 use leptos::{ev::*, html::*, *};
+use wasm_bindgen::UnwrapThrowExt;
 
 #[component]
 pub fn Toggle(
     cx: Scope,
-    name: &'static str,
+    value: RwSignal<bool>,
     node_ref: NodeRef<Input>,
     children: Children,
 ) -> impl IntoView {
@@ -12,13 +13,17 @@ pub fn Toggle(
             <input
                 node_ref=node_ref
                 type="checkbox"
-                name=name
                 class="sr-only peer"
+                on:change=move |ev| {
+                    let state = event_target::<web_sys::HtmlInputElement>(&ev).checked();
+                    value.set(state);
+                }
                 on:keydown=move |ev: KeyboardEvent| {
                     if ev.key() == "Enter" {
                         ev.prevent_default();
                         let target = event_target::<web_sys::HtmlInputElement>(&ev);
                         target.set_checked(!target.checked());
+                        value.set(target.checked());
                     }
                 }
             />

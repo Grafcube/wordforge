@@ -1,15 +1,36 @@
-use crate::components::{basicinput::*, listbox::*, toggle::*};
+use crate::components::{basicinput::*, errorview::*, listbox::*, toggle::*};
 use leptos::{ev::KeyboardEvent, html::*, *};
 use leptos_meta::*;
 use leptos_router::*;
 
 #[component]
 pub fn CreateBook(cx: Scope) -> impl IntoView {
-    let create = create_server_action::<CreateNovel>(cx);
     let summary = create_node_ref::<Textarea>(cx);
     let cw = create_node_ref::<Input>(cx);
+
     let (title, set_title) = create_signal(cx, String::new());
     let (tags, set_tags) = create_signal(cx, String::new());
+    let (errormsg, set_errormsg) = create_signal(cx, String::new());
+
+    let create = create_server_action::<CreateNovel>(cx);
+    let response = create.value();
+    let err = move || {
+        response.get().map(|v| match v {
+            Ok(Ok(_)) => (),
+            Ok(Err(e)) => set_errormsg(e),
+            Err(e) => set_errormsg(e.to_string()),
+        })
+    };
+
+    let genres = create_resource(cx, || (), move |_| get_genres());
+    let roles = create_resource(cx, || (), move |_| get_roles());
+    let langs = create_resource(cx, || (), move |_| get_langs());
+
+    let genre = create_rw_signal(cx, String::new());
+    let role = create_rw_signal(cx, String::new());
+    let lang = create_rw_signal(cx, String::new());
+    let sensitive = create_rw_signal(cx, false);
+
     let line_input_handler = move |ev, setter: WriteSignal<String>| {
         let re = regex::Regex::new(r#"[\r\n]+"#).unwrap();
         let value = event_target_value(&ev);
@@ -22,12 +43,6 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
             .set_property("height", &format!("{}px", target.scroll_height()))
             .unwrap();
     };
-    let genres = create_resource(cx, || (), move |_| get_genres());
-    let genre = create_rw_signal(cx, String::new());
-    let roles = create_resource(cx, || (), move |_| get_roles());
-    let role = create_rw_signal(cx, String::new());
-    let langs = create_resource(cx, || (), move |_| get_langs());
-    let lang = create_rw_signal(cx, String::new());
 
     view! { cx,
         <Body class="main-screen p-2"/>
@@ -65,7 +80,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                     <FloatingLabel target="summary">"Summary"</FloatingLabel>
                 </div>
                 <input type="hidden" name="genre" value=move || genre.get()/>
-                <Suspense fallback=move || {
+                <Transition fallback=move || {
                     view! { cx, <span>"Loading..."</span> }
                 }>
                     {move || match genres.read(cx) {
@@ -91,9 +106,9 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                                 .into_view(cx)
                         }
                     }}
-                </Suspense>
+                </Transition>
                 <input type="hidden" name="role" value=move || role.get()/>
-                <Suspense fallback=move || {
+                <Transition fallback=move || {
                     view! { cx, <span>"Loading..."</span> }
                 }>
                     {move || match roles.read(cx) {
@@ -119,9 +134,9 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                                 .into_view(cx)
                         }
                     }}
-                </Suspense>
+                </Transition>
                 <input type="hidden" name="lang" value=move || lang.get()/>
-                <Suspense fallback=move || {
+                <Transition fallback=move || {
                     view! { cx, <span>"Loading..."</span> }
                 }>
                     {move || match langs.read(cx) {
@@ -147,7 +162,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                                 .into_view(cx)
                         }
                     }}
-                </Suspense>
+                </Transition>
                 <div class="relative">
                     <textarea
                         class="basic-input max-h-40 overflow-y-auto resize-none peer"
@@ -165,10 +180,11 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         on:input=move |ev| line_input_handler(ev, set_tags)
                         on:paste=move |ev| line_input_handler(ev, set_tags)
                     ></textarea>
-                    <FloatingLabel target="tags">"Tags"</FloatingLabel>
+                    <FloatingLabel target="tags">"Tags (Comma separated)"</FloatingLabel>
                 </div>
+                <input type="hidden" name="cw" value=move || sensitive.get().to_string()/>
                 <div class="flex justify-start">
-                    <Toggle name="cw" node_ref=cw>
+                    <Toggle value=sensitive node_ref=cw>
                         "Content warning"
                     </Toggle>
                 </div>
@@ -177,12 +193,65 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                 </button>
             </ActionForm>
         </div>
+        <div class="flex mx-auto text-2xl m-4 justify-center text-center">
+            <ErrorView message=errormsg/>
+            {err}
+        </div>
     }
 }
 
 #[server(CreateNovel, "/server")]
-pub async fn create_novel(cx: Scope) -> Result<(), ServerFnError> {
-    todo!()
+pub async fn create_novel(
+    cx: Scope,
+    title: String,
+    summary: String,
+    genre: String,
+    role: String,
+    lang: String,
+    tags: String,
+    cw: bool,
+) -> Result<Result<(), String>, ServerFnError> {
+    use activitypub_federation::config::Data;
+    use actix_web::http::StatusCode;
+    use leptos_actix::ResponseOptions;
+    use std::str::FromStr;
+    use wordforge_api::{
+        api::novel::{self, CreateNovelResult, NewNovel},
+        enums::*,
+        DbHandle,
+    };
+
+    let resp = use_context::<ResponseOptions>(cx).unwrap();
+    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
+    let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
+        .await
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let session = <actix_session::Session as actix_web::FromRequest>::extract(&req)
+        .await
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+
+    let info = NewNovel {
+        title,
+        summary,
+        genre: Genres::from_str(&genre).unwrap(),
+        role: Roles::from_str(&role).unwrap(),
+        lang,
+        sensitive: cw,
+        tags,
+    };
+
+    match novel::create_novel(pool, session, info).await {
+        CreateNovelResult::Ok(id) => Ok(Ok(leptos_actix::redirect(cx, &format!("/novels/{}", id)))),
+        CreateNovelResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
+        CreateNovelResult::Unauthorized(e) => {
+            resp.set_status(StatusCode::UNAUTHORIZED);
+            Ok(Err(e))
+        }
+        CreateNovelResult::BadRequest(e) => {
+            resp.set_status(StatusCode::BAD_REQUEST);
+            Ok(Err(e))
+        }
+    }
 }
 
 #[server(GetGenres, "/server")]

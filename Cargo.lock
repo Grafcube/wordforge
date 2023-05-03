@@ -4342,12 +4342,15 @@ dependencies = [
  "actix-session",
  "actix-web",
  "argon2",
+ "isolang",
+ "itertools",
  "lazy_static",
  "log",
  "regex",
  "serde",
  "sqlx",
  "strum",
+ "uuid",
  "validator",
 ]
 
