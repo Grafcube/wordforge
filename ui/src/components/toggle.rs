@@ -13,6 +13,7 @@ pub fn Toggle(
             <input
                 node_ref=node_ref
                 type="checkbox"
+                autocomplete="off"
                 class="sr-only peer"
                 on:change=move |ev| {
                     let state = event_target::<web_sys::HtmlInputElement>(&ev).checked();

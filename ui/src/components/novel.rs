@@ -233,8 +233,20 @@ pub async fn create_novel(
     let info = NewNovel {
         title,
         summary,
-        genre: Genres::from_str(&genre).unwrap(),
-        role: Roles::from_str(&role).unwrap(),
+        genre: match Genres::from_str(&genre) {
+            Ok(g) => g,
+            Err(_) => {
+                resp.set_status(StatusCode::BAD_REQUEST);
+                return Ok(Err("Select a genre".to_string()));
+            }
+        },
+        role: match Roles::from_str(&role) {
+            Ok(r) => r,
+            Err(_) => {
+                resp.set_status(StatusCode::BAD_REQUEST);
+                return Ok(Err("Select your role".to_string()));
+            }
+        },
         lang,
         sensitive: cw,
         tags,
