@@ -85,6 +85,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                             </Suspense>
                         }
                     }
+                    ssr=SsrMode::Async
                 />
             </Routes>
         </Router>
