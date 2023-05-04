@@ -1,4 +1,7 @@
-use crate::components::{auth::*, novel::*};
+use crate::{
+    components::{auth::*, novel::*},
+    fallback::*,
+};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -26,7 +29,10 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/wordforge.css"/>
         <Link rel="icon" href="/favicon.svg"/>
         <Title text="Wordforge: Federated creative writing"/>
-        <Router>
+        <Router fallback=|cx| {
+            view! { cx, <NotFoundPage/> }
+                .into_view(cx)
+        }>
             <Routes>
                 <Route
                     path="/"
@@ -86,6 +92,12 @@ pub fn App(cx: Scope) -> impl IntoView {
                         }
                     }
                     ssr=SsrMode::Async
+                />
+                <Route
+                    path="/novel/:uuid"
+                    view=|cx| {
+                        view! { cx, <NovelView/> }
+                    }
                 />
             </Routes>
         </Router>

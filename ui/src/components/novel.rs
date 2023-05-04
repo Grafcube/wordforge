@@ -1,6 +1,8 @@
 use crate::{
     app::*,
     components::{basicinput::*, errorview::*, listbox::*, toggle::*},
+    fallback::*,
+    path::NovelViewParams,
 };
 use leptos::{ev::KeyboardEvent, html::*, *};
 use leptos_meta::*;
@@ -261,7 +263,7 @@ pub async fn create_novel(
     };
 
     match novel::create_novel(state, pool, session, info).await {
-        CreateNovelResult::Ok(id) => Ok(Ok(leptos_actix::redirect(cx, &format!("/novels/{}", id)))),
+        CreateNovelResult::Ok(id) => Ok(Ok(leptos_actix::redirect(cx, &format!("/novel/{}", id)))),
         CreateNovelResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
         CreateNovelResult::Unauthorized(e) => {
             resp.set_status(StatusCode::UNAUTHORIZED);
@@ -295,4 +297,41 @@ pub async fn get_langs() -> Result<Vec<String>, ServerFnError> {
     Ok(isolang::languages()
         .filter_map(|lang| lang.to_639_1().map(|_| lang.to_name().to_string()))
         .collect())
+}
+
+#[component]
+pub fn NovelView(cx: Scope) -> impl IntoView {
+    let params = use_params::<NovelViewParams>(cx);
+    let uuid = move || params.with(|params| params.clone().map(|p| p.uuid));
+
+    let novel = create_server_action::<GetNovel>(cx);
+    let response = novel.value();
+    let err = move || {
+        response.get().map(|v| match v {
+            Ok(Ok(_)) => (),
+            Ok(Err(_)) => (),
+            Err(_) => (),
+        })
+    };
+
+    view! { cx,
+        <Body class="main-screen"/>
+        <Topbar/>
+        {move || match uuid() {
+            Err(e) => {
+                error!("{e}");
+                view! { cx, <NotFoundPage/> }
+                    .into_view(cx)
+            }
+            Ok(uuid) => {
+                view! { cx, {uuid} }
+                    .into_view(cx)
+            }
+        }}
+    }
+}
+
+#[server(GetNovel, "/server")]
+pub async fn get_novel(cx: Scope, uuid: String) -> Result<Result<(), String>, ServerFnError> {
+    todo!()
 }

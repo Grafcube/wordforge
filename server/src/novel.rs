@@ -1,4 +1,9 @@
-use crate::activities;
+use crate::{
+    activities,
+    enums::{Genres, Roles},
+    util::USERNAME_RE,
+    DbHandle,
+};
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
@@ -16,11 +21,6 @@ use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
 use validator::Validate;
-use wordforge_api::{
-    enums::{Genres, Roles},
-    util::USERNAME_RE,
-    DbHandle,
-};
 
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]

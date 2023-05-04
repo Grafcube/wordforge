@@ -1,4 +1,7 @@
-use crate::objects::{novel::DbNovel, person::User};
+use crate::{
+    objects::{novel::DbNovel, person::User},
+    DbHandle,
+};
 use activitypub_federation::{
     activity_queue::send_activity,
     config::Data,
@@ -13,7 +16,6 @@ use chrono::Local;
 use serde::{Deserialize, Serialize};
 use sqlx::query;
 use url::Url;
-use wordforge_api::DbHandle;
 
 #[derive(Serialize, Deserialize)]
 struct NewChapter {

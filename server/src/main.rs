@@ -17,10 +17,8 @@ use std::{env, io};
 use wordforge_api::util::AppState;
 use wordforge_ui::{app::*, register_server_functions};
 
-mod activities;
 mod api;
 mod instance;
-mod objects;
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {

@@ -1,9 +1,15 @@
 use crate::{
     enums::{Genres, Roles},
+    objects::novel::{DbNovel, Novel},
     util::AppState,
     DbHandle,
 };
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use activitypub_federation::{
+    config::Data,
+    fetch::webfinger::{extract_webfinger_name, webfinger_resolve_actor},
+    http_signatures::generate_actor_keypair,
+    traits::Object,
+};
 use actix_session::Session;
 use actix_web::web;
 use isolang::Language;
@@ -106,4 +112,42 @@ pub async fn create_novel(
         };
     }
     CreateNovelResult::Ok(uuid.to_string().to_lowercase())
+}
+
+pub enum GetNovelResult {
+    Ok(Box<Novel>),
+    PermanentRedirect(String),
+    WebfingerNotFound,
+    NovelNotFound,
+    InternalServerError(String),
+}
+
+pub async fn get_novel(uuid: String, data: &Data<DbHandle>) -> GetNovelResult {
+    if uuid.ends_with(data.domain()) {
+        let id = match extract_webfinger_name(&format!("acct:{uuid}"), data) {
+            Ok(v) => v,
+            Err(_e) => return GetNovelResult::WebfingerNotFound,
+        };
+        return GetNovelResult::PermanentRedirect(format!("/novel/{id}"));
+    }
+    let novel = if uuid.contains('@') {
+        match webfinger_resolve_actor(&uuid, data).await {
+            Ok(v) => v,
+            Err(_) => return GetNovelResult::NovelNotFound,
+        }
+    } else {
+        let id = match Uuid::parse_str(&uuid) {
+            Ok(v) => v,
+            Err(_) => return GetNovelResult::NovelNotFound,
+        };
+        match DbNovel::read_from_uuid(id, data).await {
+            Ok(Some(v)) => v,
+            Err(e) => return GetNovelResult::InternalServerError(e.to_string()),
+            Ok(None) => return GetNovelResult::NovelNotFound,
+        }
+    };
+    match novel.into_json(data).await {
+        Ok(v) => GetNovelResult::Ok(Box::new(v)),
+        Err(e) => GetNovelResult::InternalServerError(e.to_string()),
+    }
 }

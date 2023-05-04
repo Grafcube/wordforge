@@ -1,4 +1,3 @@
-use crate::objects::{novel::DbNovel, person::User};
 use activitypub_federation::{
     config::{Data, FederationConfig, UrlVerifier},
     fetch::webfinger::{build_webfinger_response_with_type, extract_webfinger_name},
@@ -11,7 +10,10 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use url::Url;
 use uuid::Uuid;
-use wordforge_api::DbHandle;
+use wordforge_api::{
+    objects::{novel::DbNovel, person::User},
+    DbHandle,
+};
 
 #[derive(Clone)]
 struct VerifyUrl();

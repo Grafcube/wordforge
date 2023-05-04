@@ -4,6 +4,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 pub mod app;
 pub mod components;
+pub mod fallback;
+pub(crate) mod path;
 
 #[wasm_bindgen]
 pub fn hydrate() {
@@ -23,4 +25,5 @@ pub fn register_server_functions() {
     _ = GetGenres::register();
     _ = GetRoles::register();
     _ = GetLangs::register();
+    _ = GetNovel::register();
 }

@@ -1,17 +1,9 @@
-use crate::{
-    activities::{self, add::NewArticle},
-    objects::{
-        chapter::ChapterList,
-        novel::{DbNovel, NovelAcceptedActivities},
-        person::User,
-    },
-};
 use activitypub_federation::{
     actix_web::inbox::receive_activity,
     config::Data,
-    fetch::webfinger::{extract_webfinger_name, webfinger_resolve_actor},
+    fetch::webfinger::webfinger_resolve_actor,
     protocol::context::WithContext,
-    traits::{Actor, Collection, Object},
+    traits::{Actor, Collection},
 };
 use actix_session::Session;
 use actix_web::{
@@ -24,7 +16,13 @@ use serde_json::json;
 use url::Url;
 use uuid::Uuid;
 use wordforge_api::{
-    api::novel::{create_novel, CreateNovelResult, NewNovel},
+    activities::{self, add::NewArticle},
+    api::novel::{self, create_novel, CreateNovelResult, GetNovelResult, NewNovel},
+    objects::{
+        chapter::ChapterList,
+        novel::{DbNovel, NovelAcceptedActivities},
+        person::User,
+    },
     util::AppState,
     DbHandle,
 };
@@ -48,30 +46,15 @@ pub async fn get_novel(
     path: web::Path<String>,
     data: Data<DbHandle>,
 ) -> actix_web::Result<HttpResponse> {
-    if path.ends_with(data.domain()) {
-        let id = extract_webfinger_name(&format!("acct:{path}"), &data)
-            .map_err(|_| ErrorNotFound(json!({ "error": "Bad request" })))?;
-        return Ok(HttpResponse::PermanentRedirect()
-            .append_header(("Location", format!("/novel/{id}")))
-            .finish());
+    match novel::get_novel(path.into_inner(), &data).await {
+        GetNovelResult::Ok(v) => Ok(HttpResponse::Ok().json(WithContext::new_default(v))),
+        GetNovelResult::PermanentRedirect(loc) => Ok(HttpResponse::PermanentRedirect()
+            .append_header(("Location", loc))
+            .finish()),
+        GetNovelResult::WebfingerNotFound => Err(ErrorNotFound(json!({ "error": "Bad request" }))),
+        GetNovelResult::NovelNotFound => Err(ErrorNotFound(json!({ "error": "Novel not found" }))),
+        GetNovelResult::InternalServerError(e) => Err(ErrorInternalServerError(e)),
     }
-    let novel = if path.contains('@') {
-        webfinger_resolve_actor(&path, &data)
-            .await
-            .map_err(|_| ErrorNotFound(json!({ "error": "Novel not found" })))?
-    } else {
-        let id = Uuid::parse_str(&path)
-            .map_err(|_| ErrorBadRequest(json!({ "error": "Novel not found" })))?;
-        DbNovel::read_from_uuid(id, &data)
-            .await
-            .map_err(ErrorInternalServerError)?
-            .ok_or_else(|| ErrorNotFound(json!({ "error": "Novel not found" })))?
-    }
-    .into_json(&data)
-    .await
-    .map_err(ErrorInternalServerError)?;
-    let res = WithContext::new_default(novel);
-    Ok(HttpResponse::Ok().json(res))
 }
 
 #[post("/novel/{novel}/create")]
