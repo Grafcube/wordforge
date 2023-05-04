@@ -15,20 +15,9 @@ pub enum ValidationResult {
 pub fn App(cx: Scope) -> impl IntoView {
     let validate = create_resource(cx, || (), move |_| validate(cx));
     let check_validate = move |cx| {
-        let authorized = validate
+        validate
             .read(cx)
-            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
-        match authorized {
-            None => ().into_view(cx),
-            Some(ValidationResult::Ok) => view! { cx, <CreateBook/> }.into_view(cx),
-            Some(ValidationResult::Unauthorized) => {
-                view! { cx, <Redirect path="/auth"/> }.into_view(cx)
-            }
-            Some(ValidationResult::Error(e)) => {
-                error!("ValidationResult::Error@app::Router: {}", e);
-                view! { cx, <span class="text-red-900">"Something went wrong"</span> }.into_view(cx)
-            }
-        }
+            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     };
 
     provide_meta_context(cx);
@@ -48,14 +37,53 @@ pub fn App(cx: Scope) -> impl IntoView {
                 />
                 <Route
                     path="/auth"
-                    view=|cx| {
-                        view! { cx, <Auth/> }
+                    view=move |cx| {
+                        view! { cx,
+                            <Suspense fallback=|| ()>
+                                {match check_validate(cx) {
+                                    None => ().into_view(cx),
+                                    Some(ValidationResult::Ok) => {
+                                        view! { cx, <Redirect path="/"/> }
+                                            .into_view(cx)
+                                    }
+                                    Some(ValidationResult::Unauthorized) => {
+                                        view! { cx, <Auth/> }
+                                            .into_view(cx)
+                                    }
+                                    Some(ValidationResult::Error(e)) => {
+                                        error!("ValidationResult::Error@app::Router: {}", e);
+                                        view! { cx, <span class="text-red-900">"Something went wrong"</span> }
+                                            .into_view(cx)
+                                    }
+                                }}
+                            </Suspense>
+                        }
                     }
+                    ssr=SsrMode::Async
                 />
                 <Route
                     path="/create"
                     view=move |cx| {
-                        view! { cx, <Suspense fallback=|| ()>{check_validate(cx)}</Suspense> }
+                        view! { cx,
+                            <Suspense fallback=|| ()>
+                                {match check_validate(cx) {
+                                    None => ().into_view(cx),
+                                    Some(ValidationResult::Ok) => {
+                                        view! { cx, <CreateBook/> }
+                                            .into_view(cx)
+                                    }
+                                    Some(ValidationResult::Unauthorized) => {
+                                        view! { cx, <Redirect path="/auth"/> }
+                                            .into_view(cx)
+                                    }
+                                    Some(ValidationResult::Error(e)) => {
+                                        error!("ValidationResult::Error@app::Router: {}", e);
+                                        view! { cx, <span class="text-red-900">"Something went wrong"</span> }
+                                            .into_view(cx)
+                                    }
+                                }}
+                            </Suspense>
+                        }
                     }
                 />
             </Routes>
@@ -79,7 +107,7 @@ fn Home(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-fn Topbar(cx: Scope) -> impl IntoView {
+pub fn Topbar(cx: Scope) -> impl IntoView {
     view! { cx,
         <div class="sticky top-0 w-screen dark:bg-gray-950 m-0 p-1">
             <A href="/" class="m-2 px-2 w-fit flex items-start align-middle">
@@ -98,7 +126,7 @@ fn Topbar(cx: Scope) -> impl IntoView {
 
 #[component]
 fn Sidebar(cx: Scope) -> impl IntoView {
-    let (action_target, set_action_target) = create_signal(cx, "/auth".to_string());
+    let (action_target, set_action_target) = create_signal(cx, "/".to_string());
     let action = create_resource(cx, || (), move |_| validate(cx));
 
     view! { cx,
@@ -107,7 +135,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                 href=action_target
                 class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
             >
-                <Transition fallback=move || "Spinner">
+                <Suspense fallback=move || "Spinner">
                     {move || {
                         let text = action
                             .read(cx)
@@ -132,7 +160,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                             }
                         }
                     }}
-                </Transition>
+                </Suspense>
             </A>
             <A href="/" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
                 "Home"

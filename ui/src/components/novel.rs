@@ -1,4 +1,7 @@
-use crate::components::{basicinput::*, errorview::*, listbox::*, toggle::*};
+use crate::{
+    app::*,
+    components::{basicinput::*, errorview::*, listbox::*, toggle::*},
+};
 use leptos::{ev::KeyboardEvent, html::*, *};
 use leptos_meta::*;
 use leptos_router::*;
@@ -45,9 +48,10 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
     };
 
     view! { cx,
-        <Body class="main-screen p-2"/>
+        <Body class="main-screen"/>
         <Title text="Create a new book"/>
-        <h1 class="mx-auto text-3xl text-center">"Create a new book"</h1>
+        <Topbar/>
+        <h1 class="mx-auto p-2 text-3xl text-center">"Create a new book"</h1>
         <div class="flex justify-center text-center place-content-center items-center">
             <ActionForm action=create class="space-y-4 p-4 max-w-xl w-[36rem]">
                 <div class="relative">
