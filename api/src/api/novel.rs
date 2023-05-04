@@ -1,9 +1,11 @@
 use crate::{
     enums::{Genres, Roles},
+    util::AppState,
     DbHandle,
 };
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_session::Session;
+use actix_web::web;
 use isolang::Language;
 use itertools::{sorted, Itertools};
 use serde::{Deserialize, Serialize};
@@ -29,6 +31,7 @@ pub struct NewNovel {
 }
 
 pub async fn create_novel(
+    state: web::Data<AppState>,
     pool: Data<DbHandle>,
     session: Session,
     info: NewNovel,
@@ -39,6 +42,8 @@ pub async fn create_novel(
         Ok(None) => return CreateNovelResult::Unauthorized("Not signed in".to_string()),
     };
     session.renew();
+
+    let scheme = state.scheme.clone();
 
     let re = regex::Regex::new(r#"[\r\n]+"#).unwrap();
     let title = re.replace_all(info.title.trim(), "");
@@ -55,7 +60,8 @@ pub async fn create_novel(
         Err(e) => return CreateNovelResult::InternalServerError(e.to_string()),
     };
     let url = format!(
-        "{}/novel/{}",
+        "{}://{}/novel/{}",
+        scheme.clone(),
         pool.domain(),
         uuid.to_string().to_lowercase()
     );
@@ -74,8 +80,8 @@ pub async fn create_novel(
         tags.as_slice(),
         lang,
         info.sensitive,
-        format!("{}/inbox", url),
-        format!("{}/outbox", url),
+        format!("{}://{}/inbox", scheme.clone(), url),
+        format!("{}://{}/outbox", scheme.clone(), url),
         keypair.public_key,
         keypair.private_key
     )

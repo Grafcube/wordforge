@@ -180,10 +180,11 @@ pub async fn register(
     client_website: Option<String>,
 ) -> Result<Result<String, String>, ServerFnError> {
     use activitypub_federation::config::Data;
-    use actix_web::http::StatusCode;
+    use actix_web::{http::StatusCode, web};
     use leptos_actix::ResponseOptions;
     use wordforge_api::{
         account::{self, RegisterAuthError, RegistrationResult},
+        util::AppState,
         DbHandle,
     };
 
@@ -192,8 +193,12 @@ pub async fn register(
     let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let state = <web::Data<AppState> as actix_web::FromRequest>::extract(&req)
+        .await
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
     match account::register(
+        state,
         pool,
         display_name,
         username,

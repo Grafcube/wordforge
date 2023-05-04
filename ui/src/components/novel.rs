@@ -216,18 +216,22 @@ pub async fn create_novel(
     cw: bool,
 ) -> Result<Result<(), String>, ServerFnError> {
     use activitypub_federation::config::Data;
-    use actix_web::http::StatusCode;
+    use actix_web::{http::StatusCode, web};
     use leptos_actix::ResponseOptions;
     use std::str::FromStr;
     use wordforge_api::{
         api::novel::{self, CreateNovelResult, NewNovel},
         enums::*,
+        util::AppState,
         DbHandle,
     };
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
     let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
     let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
+        .await
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let state = <web::Data<AppState> as actix_web::FromRequest>::extract(&req)
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
     let session = <actix_session::Session as actix_web::FromRequest>::extract(&req)
@@ -256,7 +260,7 @@ pub async fn create_novel(
         tags,
     };
 
-    match novel::create_novel(pool, session, info).await {
+    match novel::create_novel(state, pool, session, info).await {
         CreateNovelResult::Ok(id) => Ok(Ok(leptos_actix::redirect(cx, &format!("/novels/{}", id)))),
         CreateNovelResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
         CreateNovelResult::Unauthorized(e) => {

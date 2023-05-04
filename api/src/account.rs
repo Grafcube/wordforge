@@ -1,6 +1,10 @@
-use crate::{util::USERNAME_RE, DbHandle};
+use crate::{
+    util::{AppState, USERNAME_RE},
+    DbHandle,
+};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_session::Session;
+use actix_web::web;
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
@@ -125,6 +129,7 @@ pub enum RegisterAuthError {
 }
 
 pub async fn register(
+    state: web::Data<AppState>,
     pool: Data<DbHandle>,
     display_name: String,
     username: String,
@@ -152,6 +157,8 @@ pub async fn register(
     if let Err(e) = info.validate() {
         return RegistrationResult::BadRequest(e.to_string());
     }
+
+    let scheme = state.scheme.clone();
 
     match query!(
         r#"SELECT
@@ -200,11 +207,11 @@ pub async fn register(
         r#"INSERT INTO users
            (apub_id, preferred_username, name, inbox, outbox, public_key, private_key, email, password)
            VALUES (lower($1), $2, $3, $4, $5, $6, $7, $8, $9)"#,
-        format!("{}/user/{}", pool.domain(), info.username.to_lowercase()),
+        format!("{}://{}/user/{}", scheme.clone(), pool.domain(), info.username.to_lowercase()),
         info.username,
         info.display_name,
-        format!("{}/user/{}/inbox", pool.domain(), info.username.to_lowercase()),
-        format!("{}/user/{}/outbox", pool.domain(), info.username.to_lowercase()),
+        format!("{}://{}/user/{}/inbox", scheme.clone(), pool.domain(), info.username.to_lowercase()),
+        format!("{}://{}/user/{}/outbox", scheme.clone(), pool.domain(), info.username.to_lowercase()),
         keypair.public_key,
         keypair.private_key,
         info.email,

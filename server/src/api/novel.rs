@@ -25,16 +25,18 @@ use url::Url;
 use uuid::Uuid;
 use wordforge_api::{
     api::novel::{create_novel, CreateNovelResult, NewNovel},
+    util::AppState,
     DbHandle,
 };
 
 #[post("/novel")]
 async fn new_novel(
+    state: web::Data<AppState>,
     info: web::Json<NewNovel>,
     data: Data<DbHandle>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
-    match create_novel(data, session, info.into_inner()).await {
+    match create_novel(state, data, session, info.into_inner()).await {
         CreateNovelResult::Ok(id) => Ok(HttpResponse::Ok().body(id)),
         CreateNovelResult::Unauthorized(e) => Err(ErrorUnauthorized(e)),
         CreateNovelResult::BadRequest(e) => Err(ErrorBadRequest(e)),

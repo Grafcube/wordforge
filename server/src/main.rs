@@ -9,11 +9,12 @@ use actix_session::{
 use actix_web::{
     cookie::{time::Duration, Key, SameSite},
     middleware::{self, Compress, NormalizePath},
-    HttpServer,
+    web, HttpServer,
 };
 use leptos::view;
 use leptos_actix::{generate_route_list, handle_server_fns, LeptosRoutes};
 use std::{env, io};
+use wordforge_api::util::AppState;
 use wordforge_ui::{app::*, register_server_functions};
 
 mod activities;
@@ -42,8 +43,10 @@ async fn main() -> io::Result<()> {
     let redis_port = env::var("REDIS_PORT").expect("REDIS_PORT is required");
     let redis_url = format!("localhost:{redis_port}");
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
-    let domain = env::var("DOMAIN").expect("DOMAIN is required");
-    let config = new_database(domain, db_url)
+    let state = AppState {
+        scheme: env::var("SCHEME").expect("SCHEME is required"),
+    };
+    let config = new_database(addr.to_string(), db_url)
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let key = Key::from(include_bytes!("cookie.key")); // TODO: Better way to do this
@@ -65,6 +68,7 @@ async fn main() -> io::Result<()> {
         let routes = &routes;
 
         actix_web::App::new()
+            .app_data(web::Data::new(state.clone()))
             .wrap(middleware::Logger::default())
             .wrap(session)
             .wrap(Compress::default())
