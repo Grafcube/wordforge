@@ -7,7 +7,7 @@
 }
 
 .button-1 {
-  @apply bg-purple-500 hover:bg-purple-700 active:bg-purple-900 dark:text-white font-bold py-2 px-4 rounded;
+  @apply bg-purple-500 hover:bg-purple-700 active:bg-purple-900 dark:text-white text-lg font-bold py-2 px-4 rounded;
 }
 
 .basic-input {

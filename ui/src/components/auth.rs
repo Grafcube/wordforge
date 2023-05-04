@@ -1,4 +1,4 @@
-use crate::components::errorview::*;
+use crate::components::{basicinput::*, errorview::*};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -33,16 +33,24 @@ fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
 
     view! { cx,
         <ActionForm action=login class="space-y-4 p-4 w-full">
-            <input type="email" class="basic-input" placeholder="Email" name="email" required/>
-            <input
-                type="password"
-                class="basic-input"
-                placeholder="Password (minimum 8 characters)"
-                name="password"
-                required
-            />
-            <input type="hidden" name="client_app" value="Web"/>
-            <input type="submit" class="button-1" value="Sign in"/>
+            <div class="relative">
+                <input type="email" class="basic-input peer" placeholder="" name="email" required/>
+                <FloatingLabel target="email">"Email"</FloatingLabel>
+            </div>
+            <div class="relative">
+                <input
+                    type="password"
+                    class="basic-input peer"
+                    placeholder=""
+                    name="password"
+                    required
+                />
+                <FloatingLabel target="password">"Password"</FloatingLabel>
+            </div>
+            <div class="relative">
+                <input type="hidden" name="client_app" value="Web"/>
+                <input type="submit" class="button-1" value="Sign in"/>
+            </div>
             {err}
         </ActionForm>
     }
@@ -116,22 +124,40 @@ fn Register(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
 
     view! { cx,
         <ActionForm action=register class="space-y-4 p-4 w-full">
-            <input
-                type="text"
-                class="basic-input"
-                placeholder="Display name"
-                name="display_name"
-                required
-            />
-            <input type="text" class="basic-input" placeholder="Username" name="username" required/>
-            <input type="email" class="basic-input" placeholder="Email" name="email" required/>
-            <input
-                type="password"
-                class="basic-input"
-                placeholder="Password"
-                name="password"
-                required
-            />
+            <div class="relative">
+                <input
+                    type="text"
+                    class="basic-input peer"
+                    placeholder=""
+                    name="display_name"
+                    required
+                />
+                <FloatingLabel target="display_name">"Display name"</FloatingLabel>
+            </div>
+            <div class="relative">
+                <input
+                    type="text"
+                    class="basic-input peer"
+                    placeholder=""
+                    name="username"
+                    required
+                />
+                <FloatingLabel target="username">"Username"</FloatingLabel>
+            </div>
+            <div class="relative">
+                <input type="email" class="basic-input peer" placeholder="" name="email" required/>
+                <FloatingLabel target="email">"Email"</FloatingLabel>
+            </div>
+            <div class="relative">
+                <input
+                    type="password"
+                    class="basic-input peer"
+                    placeholder=""
+                    name="password"
+                    required
+                />
+                <FloatingLabel target="password">"Password"</FloatingLabel>
+            </div>
             <input type="hidden" name="client_app" value="Web"/>
             <input type="submit" class="button-1" value="Sign up"/>
             {err}
