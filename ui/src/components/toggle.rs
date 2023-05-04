@@ -1,5 +1,4 @@
 use leptos::{ev::*, html::*, *};
-use wasm_bindgen::UnwrapThrowExt;
 
 #[component]
 pub fn Toggle(

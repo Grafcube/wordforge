@@ -42,7 +42,8 @@ async fn main() -> io::Result<()> {
     let redis_port = env::var("REDIS_PORT").expect("REDIS_PORT is required");
     let redis_url = format!("localhost:{redis_port}");
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
-    let config = new_database(addr.to_string(), db_url)
+    let domain = env::var("DOMAIN").expect("DOMAIN is required");
+    let config = new_database(domain, db_url)
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let key = Key::from(include_bytes!("cookie.key")); // TODO: Better way to do this

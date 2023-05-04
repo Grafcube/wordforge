@@ -13,6 +13,24 @@ pub enum ValidationResult {
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
+    let validate = create_resource(cx, || (), move |_| validate(cx));
+    let check_validate = move |cx| {
+        let authorized = validate
+            .read(cx)
+            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
+        match authorized {
+            None => ().into_view(cx),
+            Some(ValidationResult::Ok) => view! { cx, <CreateBook/> }.into_view(cx),
+            Some(ValidationResult::Unauthorized) => {
+                view! { cx, <Redirect path="/auth"/> }.into_view(cx)
+            }
+            Some(ValidationResult::Error(e)) => {
+                error!("ValidationResult::Error@app::Router: {}", e);
+                view! { cx, <span class="text-red-900">"Something went wrong"</span> }.into_view(cx)
+            }
+        }
+    };
+
     provide_meta_context(cx);
 
     view! { cx,
@@ -36,8 +54,8 @@ pub fn App(cx: Scope) -> impl IntoView {
                 />
                 <Route
                     path="/create"
-                    view=|cx| {
-                        view! { cx, <CreateBook/> }
+                    view=move |cx| {
+                        view! { cx, <Suspense fallback=|| ()>{check_validate(cx)}</Suspense> }
                     }
                 />
             </Routes>
