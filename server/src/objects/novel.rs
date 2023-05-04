@@ -1,11 +1,10 @@
-use super::chapter::{Chapter, ChapterList};
 use crate::activities;
 use activitypub_federation::{
     config::Data,
     fetch::object_id::ObjectId,
     kinds::actor::GroupType,
-    protocol::{context::WithContext, public_key::PublicKey, verification::verify_domains_match},
-    traits::{ActivityHandler, Actor, Collection, Object},
+    protocol::{public_key::PublicKey, verification::verify_domains_match},
+    traits::{ActivityHandler, Actor, Object},
 };
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -47,7 +46,6 @@ pub struct DbNovel {
     pub tags: Vec<String>,
     pub language: Language,
     pub sensitive: bool,
-    pub chapters: Vec<ObjectId<Chapter>>,
     pub inbox: String,
     pub outbox: String,
     pub public_key: String,
@@ -73,7 +71,6 @@ pub struct Novel {
     tags: Vec<String>,
     language: String,
     sensitive: bool,
-    history: WithContext<ChapterList>,
     inbox: Url,
     outbox: Url,
     public_key: PublicKey,
@@ -143,7 +140,6 @@ impl Object for DbNovel {
             tags: row.tags,
             language: Language::from_639_1(row.language.as_str()).unwrap(),
             sensitive: row.sensitive,
-            chapters: vec![],
             inbox: row.inbox,
             outbox: row.outbox,
             public_key: row.public_key,
@@ -152,17 +148,10 @@ impl Object for DbNovel {
             last_refresh: row.last_refresh,
         });
 
-        match novel {
-            Some(novel) => {
-                let mut novel = novel;
-                novel.chapters = ChapterList::read_local(&novel, data).await?.ordered_items;
-                Ok(Some(novel))
-            }
-            None => Ok(None),
-        }
+        Ok(novel)
     }
 
-    async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
+    async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, Self::Error> {
         Ok(Self::Kind {
             id: self.apub_id.parse()?,
             kind: Default::default(),
@@ -179,7 +168,6 @@ impl Object for DbNovel {
             tags: self.tags.clone(),
             language: self.language.to_639_1().unwrap().to_string(),
             sensitive: self.sensitive,
-            history: WithContext::new_default(ChapterList::read_local(&self, data).await?),
             inbox: self.inbox.parse()?,
             outbox: self.outbox.parse()?,
             public_key: self.public_key(),
@@ -211,7 +199,6 @@ impl Object for DbNovel {
             language: Language::from_639_1(json.language.as_str())
                 .ok_or_else(|| anyhow!("Unknown language"))?,
             sensitive: json.sensitive,
-            chapters: json.history.inner().ordered_items.clone(),
             inbox: json.inbox.into(),
             outbox: json.outbox.into(),
             public_key: json.public_key.public_key_pem,

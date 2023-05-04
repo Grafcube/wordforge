@@ -73,6 +73,7 @@ async fn main() -> io::Result<()> {
             .route("/user/{name}", api::users())
             .route("/novel/{uuid}", api::novels())
             .service(api::novel::novel_inbox)
+            .service(api::novel::novel_outbox)
             .service(api::scope())
             .service(webfinger)
             .route("/server/{tail:.*}", handle_server_fns())

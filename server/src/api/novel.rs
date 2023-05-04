@@ -1,6 +1,7 @@
 use crate::{
     activities::{self, add::NewArticle},
     objects::{
+        chapter::ChapterList,
         novel::{DbNovel, NovelAcceptedActivities},
         person::User,
     },
@@ -10,12 +11,12 @@ use activitypub_federation::{
     config::Data,
     fetch::webfinger::{extract_webfinger_name, webfinger_resolve_actor},
     protocol::context::WithContext,
-    traits::{Actor, Object},
+    traits::{Actor, Collection, Object},
 };
 use actix_session::Session;
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound, ErrorUnauthorized},
-    post,
+    get, post,
     web::{self, Bytes},
     HttpRequest, HttpResponse,
 };
@@ -108,4 +109,20 @@ async fn novel_inbox(
     )
     .await
     .map_err(ErrorInternalServerError)
+}
+
+#[get("/novel/{uuid}/outbox")]
+async fn novel_outbox(
+    uuid: web::Path<Uuid>,
+    data: Data<DbHandle>,
+) -> actix_web::Result<HttpResponse> {
+    let owner = DbNovel::read_from_uuid(uuid.into_inner(), &data)
+        .await
+        .map_err(ErrorInternalServerError)?
+        .ok_or(ErrorNotFound(json!({"error": "Novel not found"})))?;
+    let chapters = ChapterList::read_local(&owner, &data)
+        .await
+        .map_err(ErrorInternalServerError)?;
+    let res = WithContext::new_default(chapters);
+    Ok(HttpResponse::Ok().json(res))
 }
