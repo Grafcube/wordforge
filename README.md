@@ -37,6 +37,7 @@ using ActivityPub.
 - [ ] Books
   - [ ] Novels
     - [x] Creating books
+    - [ ] Reading books
     - [x] Set language
     - [ ] Editing and deleting
     - [x] Federate books
@@ -51,6 +52,7 @@ using ActivityPub.
   - [ ] Token generation
   - [ ] Scopes
 - [ ] Admin dashboard and moderation
+- [ ] Landing site with relay for discovery
 - [ ] Analytics
 - [ ] Instance organized and federated events
 - [ ] Payment methods
@@ -58,32 +60,42 @@ using ActivityPub.
 
 ## Development
 
-1. Ensure that `rustup`, `sqlx-cli` and `podman-compose` are available.
+1. Ensure that `rustup`, `sqlx-cli`, `cargo-leptos` and `podman-compose` are available.
 
 2. Configure the `.env` file.
 
-3. Start the PostgreSQL and Redis server.
+   ```sh
+   cp .env.example .env
+   ```
 
-```sh
-podman-compose up -d
-```
+3. Generate a key for cookie signing (TODO: Better way to use keys).
 
-4. Run migrations.
+   ```sh
+   openssl genrsa -out server/src/cookie.key 2048
+   ```
 
-```sh
-sqlx migrate run
-```
+4. Start the PostgreSQL and Redis server.
 
-5. Start the server.
+   ```sh
+   podman-compose up -d
+   ```
 
-Watch mode:
+5. Run migrations.
 
-```sh
-cargo leptos watch
-```
+   ```sh
+   sqlx migrate run
+   ```
 
-Serve mode:
+6. Start the server.
 
-```sh
-cargo leptos serve
-```
+   Watch mode:
+
+   ```sh
+   cargo leptos watch
+   ```
+
+   Serve mode:
+
+   ```sh
+   cargo leptos serve
+   ```
