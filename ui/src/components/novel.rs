@@ -50,159 +50,159 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
     };
 
     view! { cx,
-        <Body class="main-screen"/>
         <Title text="Create a new book"/>
-        <Topbar/>
-        <h1 class="mx-auto p-2 text-3xl text-center">"Create a new book"</h1>
-        <div class="flex justify-center text-center place-content-center items-center">
-            <ActionForm action=create class="space-y-4 p-4 max-w-xl w-[36rem]">
-                <div class="relative">
-                    <textarea
-                        class="basic-input max-h-40 overflow-y-auto resize-none peer"
-                        placeholder=""
-                        name="title"
-                        rows=1
-                        wrap="soft"
-                        on:keydown=move |ev: KeyboardEvent| {
-                            if ev.key() == "Enter" {
-                                ev.prevent_default();
-                                summary().unwrap().focus().unwrap();
+        <Overlay class="mx-auto">
+            <h1 class="mx-auto p-2 text-3xl text-center">"Create a new book"</h1>
+            <div class="flex justify-center text-center place-content-center items-center">
+                <ActionForm action=create class="space-y-4 p-4 max-w-xl w-[36rem]">
+                    <div class="relative">
+                        <textarea
+                            class="basic-input max-h-40 overflow-y-auto resize-none peer"
+                            placeholder=""
+                            name="title"
+                            rows=1
+                            wrap="soft"
+                            on:keydown=move |ev: KeyboardEvent| {
+                                if ev.key() == "Enter" {
+                                    ev.prevent_default();
+                                    summary().unwrap().focus().unwrap();
+                                }
                             }
-                        }
-                        prop:value=title
-                        on:input=move |ev| line_input_handler(ev, set_title)
-                        on:paste=move |ev| line_input_handler(ev, set_title)
-                        required
-                    ></textarea>
-                    <FloatingLabel target="title">"Title"</FloatingLabel>
-                </div>
-                <div class="relative">
-                    <textarea
-                        class="basic-input peer"
-                        placeholder=""
-                        node_ref=summary
-                        name="summary"
-                    ></textarea>
-                    <FloatingLabel target="summary">"Summary"</FloatingLabel>
-                </div>
-                <input type="hidden" name="genre" value=move || genre.get()/>
-                <Transition fallback=move || {
-                    view! { cx, <span>"Loading..."</span> }
-                }>
-                    {move || match genres.read(cx) {
-                        None => {
-                            view! { cx, <span>"Loading..."</span> }
-                                .into_view(cx)
-                        }
-                        Some(Ok(items)) => {
-                            view! { cx,
-                                <FilterListbox
-                                    option=genre
-                                    name="genre"
-                                    label="Genre"
-                                    initial="Select a genre"
-                                    items=items
-                                />
+                            prop:value=title
+                            on:input=move |ev| line_input_handler(ev, set_title)
+                            on:paste=move |ev| line_input_handler(ev, set_title)
+                            required
+                        ></textarea>
+                        <FloatingLabel target="title">"Title"</FloatingLabel>
+                    </div>
+                    <div class="relative">
+                        <textarea
+                            class="basic-input peer"
+                            placeholder=""
+                            node_ref=summary
+                            name="summary"
+                        ></textarea>
+                        <FloatingLabel target="summary">"Summary"</FloatingLabel>
+                    </div>
+                    <input type="hidden" name="genre" value=move || genre.get()/>
+                    <Transition fallback=move || {
+                        view! { cx, <span>"Loading..."</span> }
+                    }>
+                        {move || match genres.read(cx) {
+                            None => {
+                                view! { cx, <span>"Loading..."</span> }
+                                    .into_view(cx)
                             }
-                                .into_view(cx)
-                        }
-                        Some(Err(e)) => {
-                            error!("{}", e.to_string());
-                            view! { cx, <span>"Something went wrong"</span> }
-                                .into_view(cx)
-                        }
-                    }}
-                </Transition>
-                <input type="hidden" name="role" value=move || role.get()/>
-                <Transition fallback=move || {
-                    view! { cx, <span>"Loading..."</span> }
-                }>
-                    {move || match roles.read(cx) {
-                        None => {
-                            view! { cx, <span>"Loading..."</span> }
-                                .into_view(cx)
-                        }
-                        Some(Ok(items)) => {
-                            view! { cx,
-                                <FilterListbox
-                                    option=role
-                                    name="role"
-                                    label="Your role"
-                                    initial="Select your role"
-                                    items=items
-                                />
+                            Some(Ok(items)) => {
+                                view! { cx,
+                                    <FilterListbox
+                                        option=genre
+                                        name="genre"
+                                        label="Genre"
+                                        initial="Select a genre"
+                                        items=items
+                                    />
+                                }
+                                    .into_view(cx)
                             }
-                                .into_view(cx)
-                        }
-                        Some(Err(e)) => {
-                            error!("{}", e.to_string());
-                            view! { cx, <span>"Something went wrong"</span> }
-                                .into_view(cx)
-                        }
-                    }}
-                </Transition>
-                <input type="hidden" name="lang" value=move || lang.get()/>
-                <Transition fallback=move || {
-                    view! { cx, <span>"Loading..."</span> }
-                }>
-                    {move || match langs.read(cx) {
-                        None => {
-                            view! { cx, <span>"Loading..."</span> }
-                                .into_view(cx)
-                        }
-                        Some(Ok(items)) => {
-                            view! { cx,
-                                <FilterListbox
-                                    option=lang
-                                    name="lang"
-                                    label="Language"
-                                    initial="Select the book's language"
-                                    items=items
-                                />
+                            Some(Err(e)) => {
+                                error!("{}", e.to_string());
+                                view! { cx, <span>"Something went wrong"</span> }
+                                    .into_view(cx)
                             }
-                                .into_view(cx)
-                        }
-                        Some(Err(e)) => {
-                            error!("{}", e.to_string());
-                            view! { cx, <span>"Something went wrong"</span> }
-                                .into_view(cx)
-                        }
-                    }}
-                </Transition>
-                <div class="relative">
-                    <textarea
-                        class="basic-input max-h-40 overflow-y-auto resize-none peer"
-                        placeholder=""
-                        name="tags"
-                        rows=1
-                        wrap="soft"
-                        on:keydown=move |ev: KeyboardEvent| {
-                            if ev.key() == "Enter" {
-                                ev.prevent_default();
-                                cw().unwrap().focus().unwrap();
+                        }}
+                    </Transition>
+                    <input type="hidden" name="role" value=move || role.get()/>
+                    <Transition fallback=move || {
+                        view! { cx, <span>"Loading..."</span> }
+                    }>
+                        {move || match roles.read(cx) {
+                            None => {
+                                view! { cx, <span>"Loading..."</span> }
+                                    .into_view(cx)
                             }
-                        }
-                        prop:value=tags
-                        on:input=move |ev| line_input_handler(ev, set_tags)
-                        on:paste=move |ev| line_input_handler(ev, set_tags)
-                    ></textarea>
-                    <FloatingLabel target="tags">"Tags (Comma separated)"</FloatingLabel>
-                </div>
-                <input type="hidden" name="cw" value=move || sensitive.get().to_string()/>
-                <div class="flex justify-start">
-                    <Toggle value=sensitive node_ref=cw>
-                        "Content warning"
-                    </Toggle>
-                </div>
-                <button class="button-1" type="submit">
-                    "Create"
-                </button>
-            </ActionForm>
-        </div>
-        <div class="flex mx-auto text-2xl m-4 justify-center text-center">
-            <ErrorView message=errormsg/>
-            {err}
-        </div>
+                            Some(Ok(items)) => {
+                                view! { cx,
+                                    <FilterListbox
+                                        option=role
+                                        name="role"
+                                        label="Your role"
+                                        initial="Select your role"
+                                        items=items
+                                    />
+                                }
+                                    .into_view(cx)
+                            }
+                            Some(Err(e)) => {
+                                error!("{}", e.to_string());
+                                view! { cx, <span>"Something went wrong"</span> }
+                                    .into_view(cx)
+                            }
+                        }}
+                    </Transition>
+                    <input type="hidden" name="lang" value=move || lang.get()/>
+                    <Transition fallback=move || {
+                        view! { cx, <span>"Loading..."</span> }
+                    }>
+                        {move || match langs.read(cx) {
+                            None => {
+                                view! { cx, <span>"Loading..."</span> }
+                                    .into_view(cx)
+                            }
+                            Some(Ok(items)) => {
+                                view! { cx,
+                                    <FilterListbox
+                                        option=lang
+                                        name="lang"
+                                        label="Language"
+                                        initial="Select the book's language"
+                                        items=items
+                                    />
+                                }
+                                    .into_view(cx)
+                            }
+                            Some(Err(e)) => {
+                                error!("{}", e.to_string());
+                                view! { cx, <span>"Something went wrong"</span> }
+                                    .into_view(cx)
+                            }
+                        }}
+                    </Transition>
+                    <div class="relative">
+                        <textarea
+                            class="basic-input max-h-40 overflow-y-auto resize-none peer"
+                            placeholder=""
+                            name="tags"
+                            rows=1
+                            wrap="soft"
+                            on:keydown=move |ev: KeyboardEvent| {
+                                if ev.key() == "Enter" {
+                                    ev.prevent_default();
+                                    cw().unwrap().focus().unwrap();
+                                }
+                            }
+                            prop:value=tags
+                            on:input=move |ev| line_input_handler(ev, set_tags)
+                            on:paste=move |ev| line_input_handler(ev, set_tags)
+                        ></textarea>
+                        <FloatingLabel target="tags">"Tags (Comma separated)"</FloatingLabel>
+                    </div>
+                    <input type="hidden" name="cw" value=move || sensitive.get().to_string()/>
+                    <div class="flex justify-start">
+                        <Toggle value=sensitive node_ref=cw>
+                            "Content warning"
+                        </Toggle>
+                    </div>
+                    <button class="button-1" type="submit">
+                        "Create"
+                    </button>
+                </ActionForm>
+            </div>
+            <div class="flex mx-auto text-2xl m-4 justify-center text-center">
+                <ErrorView message=errormsg/>
+                {err}
+            </div>
+        </Overlay>
     }
 }
 

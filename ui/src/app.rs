@@ -104,13 +104,28 @@ pub fn App(cx: Scope) -> impl IntoView {
 #[component]
 fn Home(cx: Scope) -> impl IntoView {
     view! { cx,
+        <Overlay class="items-center overflow-auto text-center">
+            <p class="mx-auto text-6xl">"EVENTS"</p>
+            <p class="mx-auto text-6xl">"RECOMMENDATIONS"</p>
+        </Overlay>
+    }
+}
+
+#[component]
+pub fn Overlay(
+    cx: Scope,
+    #[prop(optional)] class: &'static str,
+    #[prop(optional)] style: &'static str,
+    #[prop(optional)] id: &'static str,
+    children: Children,
+) -> impl IntoView {
+    view! { cx,
         <Body class="main-screen"/>
         <Topbar/>
-        <div class="fixed flex flex-row">
+        <div class="fixed flex flex-row w-full">
             <Sidebar/>
-            <div class="items-center overflow-auto">
-                <p class="mx-auto text-6xl">"EVENTS"</p>
-                <p class="mx-auto text-6xl">"RECOMMENDATIONS"</p>
+            <div class=class style=style id=id>
+                {children(cx)}
             </div>
         </div>
     }
@@ -136,42 +151,58 @@ pub fn Topbar(cx: Scope) -> impl IntoView {
 
 #[component]
 fn Sidebar(cx: Scope) -> impl IntoView {
-    let (action_target, set_action_target) = create_signal(cx, "/".to_string());
-    let action = create_resource(cx, || (), move |_| validate(cx));
+    let validator = create_resource(cx, || (), move |_| validate(cx));
 
     view! { cx,
         <div class="sticky flex flex-col items-start p-1 text-xl align-top h-screen left-0 top-0 w-60 dark:bg-gray-700">
-            <A
-                href=action_target
-                class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
-            >
-                <Suspense fallback=move || "Spinner">
-                    {move || {
-                        let text = action
-                            .read(cx)
-                            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
-                        let text = match text {
-                            None => return "Spinner".to_string(),
-                            Some(v) => v,
-                        };
-                        match text {
-                            ValidationResult::Ok => {
-                                set_action_target("/create".to_string());
-                                "Create new book".to_string()
+            <Transition fallback=|| ()>
+                {move || {
+                    let text = validator
+                        .read(cx)
+                        .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
+                    match text {
+                        None => {
+                            view! { cx,
+                                <span class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700">
+                                    "Spinner"
+                                </span>
                             }
-                            ValidationResult::Unauthorized => {
-                                set_action_target("/auth".to_string());
-                                "Sign in / Sign up".to_string()
-                            }
-                            ValidationResult::Error(e) => {
-                                set_action_target("/".to_string());
-                                error!("ValidationResult::Error@app::Sidebar: {}", e);
-                                "Something went wrong".to_string()
-                            }
+                                .into_view(cx)
                         }
-                    }}
-                </Suspense>
-            </A>
+                        Some(ValidationResult::Ok) => {
+                            view! { cx,
+                                <A
+                                    href="/create"
+                                    class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
+                                >
+                                    "Create new book"
+                                </A>
+                            }
+                                .into_view(cx)
+                        }
+                        Some(ValidationResult::Unauthorized) => {
+                            view! { cx,
+                                <A
+                                    href="/auth"
+                                    class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
+                                >
+                                    "Sign in / Sign up"
+                                </A>
+                            }
+                                .into_view(cx)
+                        }
+                        Some(ValidationResult::Error(e)) => {
+                            error!("ValidationResult::Error@app::Sidebar: {}", e);
+                            view! { cx,
+                                <span class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700">
+                                    "Something went wrong"
+                                </span>
+                            }
+                                .into_view(cx)
+                        }
+                    }
+                }}
+            </Transition>
             <A href="/" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
                 "Home"
             </A>
