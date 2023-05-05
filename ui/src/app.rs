@@ -29,10 +29,7 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/wordforge.css"/>
         <Link rel="icon" href="/favicon.svg"/>
         <Title text="Wordforge: Federated creative writing"/>
-        <Router fallback=|cx| {
-            view! { cx, <NotFoundPage/> }
-                .into_view(cx)
-        }>
+        <Router>
             <Routes>
                 <Route
                     path="/"
@@ -58,7 +55,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                                     }
                                     Some(ValidationResult::Error(e)) => {
                                         error!("ValidationResult::Error@app::Router: {}", e);
-                                        view! { cx, <span class="text-red-900">"Something went wrong"</span> }
+                                        view! { cx, <InternalErrorPage/> }
                                             .into_view(cx)
                                     }
                                 }}
