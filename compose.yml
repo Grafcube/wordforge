@@ -20,6 +20,8 @@ services:
     restart: always
     volumes:
       - postgresql:/var/lib/postgresql/data
+      - psqlroot:/root
 volumes:
   postgresql:
+  psqlroot:
   redis-data:
