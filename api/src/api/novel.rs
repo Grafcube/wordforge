@@ -126,7 +126,7 @@ pub async fn get_novel(uuid: String, data: &Data<DbHandle>) -> GetNovelResult {
     if uuid.ends_with(data.domain()) {
         let id = match extract_webfinger_name(&format!("acct:{uuid}"), data) {
             Ok(v) => v,
-            Err(_e) => return GetNovelResult::WebfingerNotFound,
+            Err(_) => return GetNovelResult::WebfingerNotFound,
         };
         return GetNovelResult::PermanentRedirect(format!("/novel/{id}"));
     }

@@ -13,11 +13,14 @@ pub enum Genres {
     Horror,
     Mystery,
     #[strum(serialize = "Non-Fiction")]
+    #[serde(rename = "Non-Fiction")]
     NonFiction,
     Romance,
     #[strum(serialize = "Sci-Fi")]
+    #[serde(rename = "Sci-Fi")]
     SciFi,
     #[strum(serialize = "Slice of Life")]
+    #[serde(rename = "Slice of Life")]
     SliceOfLife,
     Sports,
     Superhero,
@@ -36,6 +39,7 @@ pub enum Roles {
     Colorist,
     Letterer,
     #[strum(serialize = "Cover Artist")]
+    #[serde(rename = "Cover Artist")]
     CoverArtist,
     Photographer,
     Editor,
