@@ -95,6 +95,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     view=|cx| {
                         view! { cx, <NovelView/> }
                     }
+                    ssr=SsrMode::Async
                 />
             </Routes>
         </Router>

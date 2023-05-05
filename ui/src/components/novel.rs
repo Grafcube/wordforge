@@ -7,6 +7,7 @@ use crate::{
 use leptos::{ev::KeyboardEvent, html::*, *};
 use leptos_meta::*;
 use leptos_router::*;
+use serde::{Deserialize, Serialize};
 
 #[component]
 pub fn CreateBook(cx: Scope) -> impl IntoView {
@@ -299,39 +300,94 @@ pub async fn get_langs() -> Result<Vec<String>, ServerFnError> {
         .collect())
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Author {
+    pub apub_id: String,
+    pub role: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Novel {
+    name: String,
+    summary: String,
+    authors: Vec<Author>,
+    genre: String,
+    tags: Vec<String>,
+    language: String,
+    sensitive: bool,
+    published: String,
+}
+
 #[component]
 pub fn NovelView(cx: Scope) -> impl IntoView {
     let params = use_params::<NovelViewParams>(cx);
-    let uuid = move || params.with(|params| params.clone().map(|p| p.uuid));
-
-    let novel = create_server_action::<GetNovel>(cx);
-    let response = novel.value();
-    let err = move || {
-        response.get().map(|v| match v {
-            Ok(Ok(_)) => (),
-            Ok(Err(_)) => (),
-            Err(_) => (),
-        })
+    let uuid = move || {
+        params
+            .with(|params| params.clone().map(|p| p.uuid))
+            .unwrap()
     };
 
+    let novel = create_resource(cx, uuid, move |id| get_novel(cx, id));
+
     view! { cx,
-        <Body class="main-screen"/>
-        <Topbar/>
-        {move || match uuid() {
-            Err(e) => {
-                error!("{e}");
-                view! { cx, <NotFoundPage/> }
-                    .into_view(cx)
-            }
-            Ok(uuid) => {
-                view! { cx, {uuid} }
-                    .into_view(cx)
-            }
-        }}
+        <Title text="Name"/>
+        <Overlay>
+            <Suspense fallback=|| ()>
+                {move || {
+                    novel
+                        .read(cx)
+                        .map(|v| match v {
+                            Ok(Ok(novel)) => {
+                                view! { cx, <div>{novel.name}</div> }
+                                    .into_view(cx)
+                            }
+                            Ok(Err(e)) => {
+                                log!("{e}");
+                                view! { cx, <NotFoundPage/> }
+                                    .into_view(cx)
+                            }
+                            Err(e) => {
+                                error!("{}", e.to_string());
+                                view! { cx, <InternalErrorPage/> }
+                                    .into_view(cx)
+                            }
+                        })
+                }}
+            </Suspense>
+        </Overlay>
     }
 }
 
 #[server(GetNovel, "/server")]
-pub async fn get_novel(cx: Scope, uuid: String) -> Result<Result<(), String>, ServerFnError> {
-    todo!()
+pub async fn get_novel(
+    cx: Scope,
+    uuid: String,
+) -> Result<Result<Box<Novel>, String>, ServerFnError> {
+    use activitypub_federation::config::Data;
+    use serde_json;
+    use wordforge_api::{
+        api::novel::{self, GetNovelResult},
+        DbHandle,
+    };
+
+    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
+    let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
+        .await
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+
+    match novel::get_novel(uuid, &pool).await {
+        GetNovelResult::Ok(v) => {
+            let v =
+                serde_json::to_value(v).map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+            let v: Box<Novel> =
+                serde_json::from_value(v).map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+            Ok(Ok(v))
+        }
+        GetNovelResult::PermanentRedirect(loc) => {
+            leptos_actix::redirect(cx, &loc);
+            Ok(Err(String::new()))
+        }
+        GetNovelResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
+        _ => Ok(Err("NotFound".to_string())),
+    }
 }
