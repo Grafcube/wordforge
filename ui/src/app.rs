@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ValidationResult {
-    Ok,
+    Ok(String),
     Unauthorized,
     Error(String),
 }
@@ -34,7 +34,11 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <Route
                     path="/"
                     view=|cx| {
-                        view! { cx, <Home/> }
+                        view! { cx,
+                            <Overlay>
+                                <Home/>
+                            </Overlay>
+                        }
                     }
                     ssr=SsrMode::Async
                 />
@@ -45,17 +49,25 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <Suspense fallback=|| ()>
                                 {match check_validate(cx) {
                                     None => ().into_view(cx),
-                                    Some(ValidationResult::Ok) => {
+                                    Some(ValidationResult::Ok(_)) => {
                                         view! { cx, <Redirect path="/"/> }
                                             .into_view(cx)
                                     }
                                     Some(ValidationResult::Unauthorized) => {
-                                        view! { cx, <Auth/> }
+                                        view! { cx,
+                                            <Overlay>
+                                                <Auth/>
+                                            </Overlay>
+                                        }
                                             .into_view(cx)
                                     }
                                     Some(ValidationResult::Error(e)) => {
                                         error!("ValidationResult::Error@app::Router: {}", e);
-                                        view! { cx, <InternalErrorPage/> }
+                                        view! { cx,
+                                            <Overlay>
+                                                <InternalErrorPage/>
+                                            </Overlay>
+                                        }
                                             .into_view(cx)
                                     }
                                 }}
@@ -71,8 +83,12 @@ pub fn App(cx: Scope) -> impl IntoView {
                             <Suspense fallback=|| ()>
                                 {match check_validate(cx) {
                                     None => ().into_view(cx),
-                                    Some(ValidationResult::Ok) => {
-                                        view! { cx, <CreateBook/> }
+                                    Some(ValidationResult::Ok(_)) => {
+                                        view! { cx,
+                                            <Overlay>
+                                                <CreateBook/>
+                                            </Overlay>
+                                        }
                                             .into_view(cx)
                                     }
                                     Some(ValidationResult::Unauthorized) => {
@@ -81,7 +97,11 @@ pub fn App(cx: Scope) -> impl IntoView {
                                     }
                                     Some(ValidationResult::Error(e)) => {
                                         error!("ValidationResult::Error@app::Router: {}", e);
-                                        view! { cx, <span class="text-red-900">"Something went wrong"</span> }
+                                        view! { cx,
+                                            <Overlay>
+                                                <InternalErrorPage/>
+                                            </Overlay>
+                                        }
                                             .into_view(cx)
                                     }
                                 }}
@@ -93,7 +113,11 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <Route
                     path="/novel/:uuid"
                     view=|cx| {
-                        view! { cx, <NovelView/> }
+                        view! { cx,
+                            <Overlay>
+                                <NovelView/>
+                            </Overlay>
+                        }
                     }
                     ssr=SsrMode::Async
                 />
@@ -105,35 +129,27 @@ pub fn App(cx: Scope) -> impl IntoView {
 #[component]
 fn Home(cx: Scope) -> impl IntoView {
     view! { cx,
-        <Overlay class="items-center overflow-auto text-center">
+        <div class="items-center overflow-auto text-center">
             <p class="mx-auto text-6xl">"EVENTS"</p>
             <p class="mx-auto text-6xl">"RECOMMENDATIONS"</p>
-        </Overlay>
-    }
-}
-
-#[component]
-pub fn Overlay(
-    cx: Scope,
-    #[prop(optional)] class: &'static str,
-    #[prop(optional)] style: &'static str,
-    #[prop(optional)] id: &'static str,
-    children: Children,
-) -> impl IntoView {
-    view! { cx,
-        <Body class="main-screen"/>
-        <Topbar/>
-        <div class="fixed flex flex-row w-full">
-            <Sidebar/>
-            <div class=class style=style id=id>
-                {children(cx)}
-            </div>
         </div>
     }
 }
 
 #[component]
-pub fn Topbar(cx: Scope) -> impl IntoView {
+fn Overlay(cx: Scope, children: Children) -> impl IntoView {
+    view! { cx,
+        <Body class="main-screen"/>
+        <Topbar/>
+        <div class="fixed flex flex-row w-full">
+            <Sidebar/>
+            {children(cx)}
+        </div>
+    }
+}
+
+#[component]
+fn Topbar(cx: Scope) -> impl IntoView {
     view! { cx,
         <div class="sticky top-0 w-screen dark:bg-gray-950 m-0 p-1">
             <A href="/" class="m-2 px-2 w-fit flex items-start align-middle">
@@ -170,7 +186,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                             }
                                 .into_view(cx)
                         }
-                        Some(ValidationResult::Ok) => {
+                        Some(ValidationResult::Ok(_)) => {
                             view! { cx,
                                 <A
                                     href="/create"
@@ -237,7 +253,7 @@ async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
         .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
     match account::validate(pool.app_data().as_ref(), session).await {
-        UserValidateResult::Ok(_) => Ok(ValidationResult::Ok),
+        UserValidateResult::Ok(apub_id) => Ok(ValidationResult::Ok(apub_id)),
         UserValidateResult::Unauthorized(v) => {
             log!("{}", v);
             Ok(ValidationResult::Unauthorized)

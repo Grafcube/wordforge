@@ -1,7 +1,4 @@
-use crate::{
-    app::*,
-    components::{basicinput::*, errorview::*},
-};
+use crate::components::{basicinput::*, errorview::*};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -12,7 +9,7 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
 
     view! { cx,
         <Title text="Sign in or create an account"/>
-        <Overlay class="mx-auto">
+        <div class="mx-auto">
             <div class="flex flex-col md:flex-row mx-auto max-w-3xl text-2xl m-4 justify-center text-center place-content-center items-center">
                 <Login set_errormsg=set_errormsg/>
                 <Register set_errormsg=set_errormsg/>
@@ -20,7 +17,7 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
             <div class="flex mx-auto text-2xl m-4 justify-center text-center">
                 <ErrorView message=errormsg/>
             </div>
-        </Overlay>
+        </div>
     }
 }
 

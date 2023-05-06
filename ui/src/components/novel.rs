@@ -1,5 +1,4 @@
 use crate::{
-    app::*,
     components::{basicinput::*, errorview::*, listbox::*, toggle::*},
     fallback::*,
     path::NovelViewParams,
@@ -53,7 +52,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
 
     view! { cx,
         <Title text="Create a new book"/>
-        <Overlay class="mx-auto">
+        <div class="mx-auto">
             <h1 class="mx-auto p-2 text-3xl text-center">"Create a new book"</h1>
             <div class="flex justify-center text-center place-content-center items-center">
                 <ActionForm action=create class="space-y-4 p-4 max-w-xl w-[36rem]">
@@ -204,7 +203,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                 <ErrorView message=errormsg/>
                 {err}
             </div>
-        </Overlay>
+        </div>
     }
 }
 
@@ -332,7 +331,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
 
     view! { cx,
         <Title text="Name"/>
-        <Overlay class="mx-auto">
+        <div class="mx-auto">
             <Suspense fallback=|| ()>
                 {move || {
                     novel
@@ -389,7 +388,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                         })
                 }}
             </Suspense>
-        </Overlay>
+        </div>
     }
 }
 

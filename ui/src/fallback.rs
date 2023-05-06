@@ -1,4 +1,3 @@
-use crate::app::*;
 use leptos::*;
 use leptos_meta::*;
 
@@ -6,7 +5,7 @@ use leptos_meta::*;
 pub fn NotFoundPage(cx: Scope) -> impl IntoView {
     view! { cx,
         <Title text="Page not found"/>
-        <Overlay class="text-center dark:text-white">"404: Not found"</Overlay>
+        <span class="mx-auto text-center dark:text-white">"404: Not found"</span>
     }
 }
 
@@ -14,6 +13,6 @@ pub fn NotFoundPage(cx: Scope) -> impl IntoView {
 pub fn InternalErrorPage(cx: Scope) -> impl IntoView {
     view! { cx,
         <Title text="Something went wrong"/>
-        <Overlay class="text-center dark:text-white">"500: Internal Server Error"</Overlay>
+        <span class="mx-auto text-center dark:text-white">"500: Internal Server Error"</span>
     }
 }
