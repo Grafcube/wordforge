@@ -4,6 +4,7 @@ use crate::{
     fallback::*,
     path::NovelViewParams,
 };
+use isolang::Language;
 use leptos::{ev::KeyboardEvent, html::*, *};
 use leptos_meta::*;
 use leptos_router::*;
@@ -313,7 +314,7 @@ pub struct Novel {
     authors: Vec<Author>,
     genre: String,
     tags: Vec<String>,
-    language: String,
+    language: Language,
     sensitive: bool,
     published: String,
 }
@@ -331,16 +332,12 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
 
     view! { cx,
         <Title text="Name"/>
-        <Overlay>
+        <Overlay class="mx-auto">
             <Suspense fallback=|| ()>
                 {move || {
                     novel
                         .read(cx)
                         .map(|v| match v {
-                            Ok(Ok(novel)) => {
-                                view! { cx, <div>{novel.name}</div> }
-                                    .into_view(cx)
-                            }
                             Ok(Err(e)) => {
                                 log!("{e}");
                                 view! { cx, <NotFoundPage/> }
@@ -349,6 +346,44 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                             Err(e) => {
                                 error!("{}", e.to_string());
                                 view! { cx, <InternalErrorPage/> }
+                                    .into_view(cx)
+                            }
+                            Ok(Ok(novel)) => {
+                                view! { cx,
+                                    <h1 class="text-center text-2xl">{novel.name}</h1>
+                                    <div>
+                                        {novel
+                                            .summary
+                                            .lines()
+                                            .map(|line| {
+                                                view! { cx, <p>{line.to_string()}</p> }
+                                                    .into_view(cx)
+                                            })
+                                            .collect::<Vec<_>>()}
+                                    </div>
+                                    <ul>
+                                        {novel
+                                            .authors
+                                            .iter()
+                                            .map(|author| {
+                                                view! { cx, <li>{format!("{}: {}", author.apub_id, author.role)}</li> }
+                                                    .into_view(cx)
+                                            })
+                                            .collect::<Vec<_>>()}
+                                    </ul>
+                                    <a href="/todo">{novel.genre}</a>
+                                    <div>
+                                        {novel
+                                            .tags
+                                            .iter()
+                                            .map(|tag| {
+                                                view! { cx, <span class="p-1">{tag}</span> }
+                                                    .into_view(cx)
+                                            })
+                                            .collect::<Vec<_>>()}
+                                    </div>
+                                    <span>{novel.language.to_name()}</span>
+                                }
                                     .into_view(cx)
                             }
                         })
@@ -364,7 +399,6 @@ pub async fn get_novel(
     uuid: String,
 ) -> Result<Result<Box<Novel>, String>, ServerFnError> {
     use activitypub_federation::config::Data;
-    use serde_json;
     use wordforge_api::{
         api::novel::{self, GetNovelResult},
         DbHandle,
@@ -377,11 +411,26 @@ pub async fn get_novel(
 
     match novel::get_novel(uuid, &pool).await {
         GetNovelResult::Ok(v) => {
-            let v =
-                serde_json::to_value(v).map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-            let v: Box<Novel> =
-                serde_json::from_value(v).map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-            Ok(Ok(v))
+            let novel = Box::new(Novel {
+                name: v.name,
+                summary: v.summary,
+                authors: v
+                    .authors
+                    .into_iter()
+                    .map(|a| Author {
+                        apub_id: a.apub_id,
+                        role: a.role.to_string(),
+                    })
+                    .collect(),
+                genre: v.genre.to_string(),
+                tags: v.tags,
+                language: Language::from_639_1(&v.language).ok_or_else(|| {
+                    ServerFnError::ServerError("Language parse error".to_string())
+                })?,
+                sensitive: v.sensitive,
+                published: v.published,
+            });
+            Ok(Ok(novel))
         }
         GetNovelResult::PermanentRedirect(loc) => {
             leptos_actix::redirect(cx, &loc);

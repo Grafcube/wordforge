@@ -62,19 +62,19 @@ pub struct Novel {
     #[serde(rename = "type")]
     kind: GroupType,
     #[validate(regex(path = "USERNAME_RE", message = "Invalid username"))]
-    preferred_username: String,
-    name: String,
-    summary: String,
-    authors: Vec<Author>,
+    pub preferred_username: String,
+    pub name: String,
+    pub summary: String,
+    pub authors: Vec<Author>,
     attributed_to: Vec<Url>,
-    genre: Genres,
-    tags: Vec<String>,
-    language: String,
-    sensitive: bool,
+    pub genre: Genres,
+    pub tags: Vec<String>,
+    pub language: String,
+    pub sensitive: bool,
     inbox: Url,
     outbox: Url,
     public_key: PublicKey,
-    published: String,
+    pub published: String,
 }
 
 impl DbNovel {
