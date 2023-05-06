@@ -52,10 +52,10 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
 
     view! { cx,
         <Title text="Create a new book"/>
-        <div class="mx-auto">
-            <h1 class="mx-auto p-2 text-3xl text-center">"Create a new book"</h1>
+        <div class="mx-auto w-full">
+            <h1 class="p-2 text-3xl text-center">"Create a new book"</h1>
             <div class="flex justify-center text-center place-content-center items-center">
-                <ActionForm action=create class="space-y-4 p-4 max-w-xl w-[36rem]">
+                <ActionForm action=create class="space-y-4 p-4 w-full max-w-xl">
                     <div class="relative">
                         <textarea
                             class="basic-input max-h-40 overflow-y-auto resize-none peer"

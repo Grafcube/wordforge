@@ -141,17 +141,18 @@ fn Overlay(cx: Scope, children: Children) -> impl IntoView {
     view! { cx,
         <Body class="main-screen"/>
         <Topbar/>
-        <div class="fixed flex flex-row w-full">
+        <div class="fixed flex flex-row w-screen">
             <Sidebar/>
             {children(cx)}
         </div>
+        <BottomBar/>
     }
 }
 
 #[component]
 fn Topbar(cx: Scope) -> impl IntoView {
     view! { cx,
-        <div class="sticky top-0 w-screen dark:bg-gray-950 m-0 p-1">
+        <div class="sticky top-0 w-screen dark:bg-gray-950 m-0 p-0 h-0 sm:h-auto sm:p-1 invisible sm:animate-in sm:slide-in-from-top sm:visible">
             <A href="/" class="m-2 px-2 w-fit flex items-start align-middle">
                 <img
                     src="/favicon.svg"
@@ -171,7 +172,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
     let validator = create_resource(cx, || (), move |_| validate(cx));
 
     view! { cx,
-        <div class="sticky flex flex-col items-start p-1 text-xl align-top h-screen left-0 top-0 w-60 dark:bg-gray-700">
+        <div class="sticky flex flex-none flex-col items-start text-xl align-top h-screen left-0 top-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:animate-in sm:slide-in-from-left sm:visible">
             <Transition fallback=|| ()>
                 {move || {
                     let text = validator
@@ -228,6 +229,26 @@ fn Sidebar(cx: Scope) -> impl IntoView {
             </A>
             <A href="/public" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
                 "Public"
+            </A>
+        </div>
+    }
+}
+
+#[component]
+fn BottomBar(cx: Scope) -> impl IntoView {
+    let validator = create_resource(cx, || (), move |_| validate(cx));
+
+    view! { cx,
+        <div class="fixed flex flex-row max-h-40 overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 visible sm:animate-out sm:slide-out-to-bottom sm:invisible dark:bg-gray-950">
+            <A href="/" class="m-2 px-2 w-fit flex items-start align-middle">
+                <img
+                    src="/favicon.svg"
+                    alt="Home"
+                    width="20"
+                    height="20"
+                    class="mx-1 my-auto invert dark:invert-0"
+                />
+                <h1 class="mx-1 my-auto text-3xl text-left">"TODO: Bottom bar"</h1>
             </A>
         </div>
     }
