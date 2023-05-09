@@ -27,6 +27,13 @@ leptos_actix = { version = "0.2.5", optional = true }
 leptos_icons = { version = "0.0.9", features = [
   "HiChevronDownSolidLg",
   "HiChevronUpSolidLg",
+  "OcHomeLg",
+  "OcGlobeLg",
+  "OcSearchLg",
+  "CgSpinner",
+  "OcPersonAddLg",
+  "OcPencilLg",
+  "OcCircleSlashLg",
 ], optional = true }
 leptos_meta = { version = "0.2.5", default-features = false }
 leptos_router = "0.2.5"

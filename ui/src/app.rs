@@ -3,6 +3,7 @@ use crate::{
     fallback::*,
 };
 use leptos::*;
+use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
@@ -129,10 +130,8 @@ pub fn App(cx: Scope) -> impl IntoView {
 #[component]
 fn Home(cx: Scope) -> impl IntoView {
     view! { cx,
-        <div class="items-center overflow-auto text-center">
-            <p class="mx-auto text-6xl">"EVENTS"</p>
-            <p class="mx-auto text-6xl">"RECOMMENDATIONS"</p>
-        </div>
+        <p class="text-6xl">"EVENTS"</p>
+        <p class="text-6xl">"RECOMMENDATIONS"</p>
     }
 }
 
@@ -141,9 +140,9 @@ fn Overlay(cx: Scope, children: Children) -> impl IntoView {
     view! { cx,
         <Body class="main-screen"/>
         <Topbar/>
-        <div class="fixed flex flex-row w-screen">
+        <div class="flex flex-row w-screen">
             <Sidebar/>
-            {children(cx)}
+            <div class="sm:ml-60 overflow-y-auto w-full">{children(cx)}</div>
         </div>
         <BottomBar/>
     }
@@ -152,7 +151,7 @@ fn Overlay(cx: Scope, children: Children) -> impl IntoView {
 #[component]
 fn Topbar(cx: Scope) -> impl IntoView {
     view! { cx,
-        <div class="sticky top-0 w-screen dark:bg-gray-950 m-0 p-0 h-0 sm:h-auto sm:p-1 invisible sm:animate-in sm:slide-in-from-top sm:visible">
+        <div class="sticky top-0 w-screen z-40 dark:bg-gray-950 m-0 p-0 h-0 sm:h-auto sm:p-1 invisible sm:visible">
             <A href="/" class="m-2 px-2 w-fit flex items-start align-middle">
                 <img
                     src="/favicon.svg"
@@ -172,7 +171,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
     let validator = create_resource(cx, || (), move |_| validate(cx));
 
     view! { cx,
-        <div class="sticky flex flex-none flex-col items-start text-xl align-top h-screen left-0 top-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:animate-in sm:slide-in-from-left sm:visible">
+        <div class="fixed flex flex-none flex-col z-40 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:visible">
             <Transition fallback=|| ()>
                 {move || {
                     let text = validator
@@ -181,8 +180,11 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                     match text {
                         None => {
                             view! { cx,
-                                <span class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700">
-                                    "Spinner"
+                                <span class="m-1 w-[95%] p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
+                                    <Icon
+                                        icon=CgIcon::CgSpinner
+                                        class="dark:stroke-white py-1 w-10 h-10 my-auto animate-spin pointer-events-none"
+                                    />
                                 </span>
                             }
                                 .into_view(cx)
@@ -224,10 +226,10 @@ fn Sidebar(cx: Scope) -> impl IntoView {
             <A href="/" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
                 "Home"
             </A>
-            <A href="/local" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
+            <A href="/explore" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
                 "Local"
             </A>
-            <A href="/public" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
+            <A href="/explore/public" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
                 "Public"
             </A>
         </div>
@@ -239,17 +241,76 @@ fn BottomBar(cx: Scope) -> impl IntoView {
     let validator = create_resource(cx, || (), move |_| validate(cx));
 
     view! { cx,
-        <div class="fixed flex flex-row max-h-40 overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 visible sm:animate-out sm:slide-out-to-bottom sm:invisible dark:bg-gray-950">
-            <A href="/" class="m-2 px-2 w-fit flex items-start align-middle">
-                <img
-                    src="/favicon.svg"
-                    alt="Home"
-                    width="20"
-                    height="20"
-                    class="mx-1 my-auto invert dark:invert-0"
+        <div class="fixed flex flex-row z-40 max-h-40 justify-around overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 visible sm:invisible dark:bg-gray-950">
+            <A href="/">
+                <Icon
+                    icon=OcIcon::OcHomeLg
+                    class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto"
                 />
-                <h1 class="mx-1 my-auto text-3xl text-left">"TODO: Bottom bar"</h1>
             </A>
+            <A href="/explore">
+                <Icon
+                    icon=OcIcon::OcGlobeLg
+                    class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto"
+                />
+            </A>
+            <Icon
+                icon=OcIcon::OcSearchLg
+                class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto cursor-pointer"
+            />
+            <Transition fallback=|| ()>
+                {move || {
+                    let text = validator
+                        .read(cx)
+                        .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
+                    match text {
+                        None => {
+                            view! { cx,
+                                <Icon
+                                    icon=CgIcon::CgSpinner
+                                    class="dark:stroke-white py-1 w-10 h-10 my-auto animate-spin cursor-wait"
+                                />
+                            }
+                                .into_view(cx)
+                        }
+                        Some(ValidationResult::Ok(_)) => {
+                            view! { cx,
+                                <A href="/create">
+                                    <Icon
+                                        icon=OcIcon::OcPencilLg
+                                        class="dark:stroke-white w-10 h-10 py-1 my-auto stroke-0 cursor-pointer"
+                                    />
+                                </A>
+                                <span class="w-8 h-8 my-auto rounded-full cursor-pointer bg-pink-500">
+                                    <p class="hidden">"TODO: Account/Profile flyout menu"</p>
+                                </span>
+                            }
+                                .into_view(cx)
+                        }
+                        Some(ValidationResult::Unauthorized) => {
+                            view! { cx,
+                                <A href="/auth">
+                                    <Icon
+                                        icon=OcIcon::OcPersonAddLg
+                                        class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0 cursor-pointer"
+                                    />
+                                </A>
+                            }
+                                .into_view(cx)
+                        }
+                        Some(ValidationResult::Error(e)) => {
+                            error!("ValidationResult::Error@app::BottomBar: {}", e);
+                            view! { cx,
+                                <Icon
+                                    icon=OcIcon::OcCircleSlashLg
+                                    class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0"
+                                />
+                            }
+                                .into_view(cx)
+                        }
+                    }
+                }}
+            </Transition>
         </div>
     }
 }
