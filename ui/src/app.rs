@@ -183,7 +183,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                                 <span class="m-1 w-[95%] p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
                                     <Icon
                                         icon=CgIcon::CgSpinner
-                                        class="dark:stroke-white py-1 w-10 h-10 my-auto animate-spin pointer-events-none"
+                                        class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
                                     />
                                 </span>
                             }
@@ -268,7 +268,7 @@ fn BottomBar(cx: Scope) -> impl IntoView {
                             view! { cx,
                                 <Icon
                                     icon=CgIcon::CgSpinner
-                                    class="dark:stroke-white py-1 w-10 h-10 my-auto animate-spin cursor-wait"
+                                    class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin cursor-wait"
                                 />
                             }
                                 .into_view(cx)

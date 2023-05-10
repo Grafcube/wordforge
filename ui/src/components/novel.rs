@@ -328,66 +328,104 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
     };
 
     let novel = create_resource(cx, uuid, move |id| get_novel(cx, id));
+    let (authors, set_authors) = create_signal::<Vec<String>>(cx, Vec::new());
+    let usernames = create_resource(cx, authors, move |authors| get_usernames(cx, authors));
+
+    let author_view = move || {
+        usernames.read(cx).map(|v| match v {
+            Err(e) => {
+                error!("usernames: {}", e.to_string());
+                view! { cx, <span>"Something went wrong"</span> }.into_view(cx)
+            }
+            Ok(users) => {
+                view! { cx,
+                    <ul>
+                        {users
+                            .into_iter()
+                            .map(|res| match res {
+                                (apub_id, Err(e)) => {
+                                    error!("{e}");
+                                    view! { cx,
+                                        <li>
+                                            <a href=apub_id>"<UNKNOWN>"</a>
+                                        </li>
+                                    }
+                                }
+                                (apub_id, Ok(v)) => {
+                                    view! { cx,
+                                        <li>
+                                            <a href=apub_id>{v}</a>
+                                        </li>
+                                    }
+                                }
+                            })
+                            .collect::<Vec<_>>()}
+                    </ul>
+                }
+            }
+            .into_view(cx),
+        })
+    };
+
+    let view = move || {
+        novel.read(cx).map(|v| match v {
+            Ok(Err(e)) => {
+                log!("novel view: {e}");
+                view! { cx, <NotFoundPage/> }.into_view(cx)
+            }
+            Err(e) => {
+                error!("novel server fn: {}", e.to_string());
+                view! { cx, <InternalErrorPage/> }.into_view(cx)
+            }
+            Ok(Ok(novel)) => view! { cx,
+                                 <h1 class="text-center p-2 text-3xl">{&novel.name}</h1>
+                                 <div class="dark:bg-gray-800 rounded-xl px-4 py-2">
+                                     {novel
+                                         .summary
+                                         .lines()
+                                         .map(|line| {
+                                             view! { cx, <p>{line.to_string()}</p> }
+                                                 .into_view(cx)
+                                         })
+                                         .collect::<Vec<_>>()}
+                                 </div>
+                                 <div>
+                                     {
+                                         let author_list = novel
+                                             .authors
+                                             .iter()
+                                             .map(|a| a.apub_id.clone())
+                                             .collect::<Vec<String>>();
+                                         set_authors(author_list);
+                                     } <Suspense fallback=move || {
+                                         view! { cx, "Loading..." }
+                                             .into_view(cx)
+                                     }>{author_view}</Suspense>
+                                 </div>
+                                 <a href="/todo">{&novel.genre}</a>
+                                 <div>
+                                     {novel
+                                         .tags
+                                         .iter()
+                                         .map(|tag| {
+                                             view! { cx, <span class="p-1">{tag}</span> }
+                                                 .into_view(cx)
+                                         })
+                                         .collect::<Vec<_>>()}
+                                 </div>
+                                 <span>{novel.language.to_name()}</span>
+                             }
+            .into_view(cx),
+        })
+    };
 
     view! { cx,
-        <Title text="Name"/>
-        <div class="mx-auto">
-            <Suspense fallback=|| ()>
-                {move || {
-                    novel
-                        .read(cx)
-                        .map(|v| match v {
-                            Ok(Err(e)) => {
-                                log!("{e}");
-                                view! { cx, <NotFoundPage/> }
-                                    .into_view(cx)
-                            }
-                            Err(e) => {
-                                error!("{}", e.to_string());
-                                view! { cx, <InternalErrorPage/> }
-                                    .into_view(cx)
-                            }
-                            Ok(Ok(novel)) => {
-                                view! { cx,
-                                    <h1 class="text-center text-2xl">{novel.name}</h1>
-                                    <div>
-                                        {novel
-                                            .summary
-                                            .lines()
-                                            .map(|line| {
-                                                view! { cx, <p>{line.to_string()}</p> }
-                                                    .into_view(cx)
-                                            })
-                                            .collect::<Vec<_>>()}
-                                    </div>
-                                    <ul>
-                                        {novel
-                                            .authors
-                                            .iter()
-                                            .map(|author| {
-                                                view! { cx, <li>{format!("{}: {}", author.apub_id, author.role)}</li> }
-                                                    .into_view(cx)
-                                            })
-                                            .collect::<Vec<_>>()}
-                                    </ul>
-                                    <a href="/todo">{novel.genre}</a>
-                                    <div>
-                                        {novel
-                                            .tags
-                                            .iter()
-                                            .map(|tag| {
-                                                view! { cx, <span class="p-1">{tag}</span> }
-                                                    .into_view(cx)
-                                            })
-                                            .collect::<Vec<_>>()}
-                                    </div>
-                                    <span>{novel.language.to_name()}</span>
-                                }
-                                    .into_view(cx)
-                            }
-                        })
-                }}
-            </Suspense>
+        <Title text="Novel"/>
+        <div class="mx-auto max-w-2xl px-4">
+            <Suspense fallback=move || {
+                view! { cx, "Loading..." }
+                    .into_view(cx)
+            }>{view}</Suspense>
         </div>
     }
 }
@@ -438,4 +476,101 @@ pub async fn get_novel(
         GetNovelResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
         _ => Ok(Err("NotFound".to_string())),
     }
+}
+
+#[server(GetUsername, "/server")]
+pub async fn get_usernames(
+    cx: Scope,
+    authors: Vec<String>,
+) -> Result<Vec<(String, Result<String, String>)>, ServerFnError> {
+    use actix_web::web;
+    use futures::future;
+    use leptos_actix::ResponseOptions;
+    use reqwest::{Method, Url};
+    use serde::Deserialize;
+    use wordforge_api::util::AppState;
+
+    let resp = use_context::<ResponseOptions>(cx).unwrap();
+    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
+    let state = <web::Data<AppState> as actix_web::FromRequest>::extract(&req)
+        .await
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let client = &state.client;
+
+    #[derive(Deserialize)]
+    struct Res {
+        name: String,
+    }
+
+    let mut urls = vec![];
+    for apub_id in authors.iter() {
+        urls.push(
+            Url::parse(apub_id)
+                .map_err(|e| ServerFnError::ServerError(format!("{apub_id}: {e}")))?,
+        );
+    }
+
+    let authors = urls.into_iter().fold(vec![], |mut acc, url| {
+        if acc.is_empty() {
+            acc.push(vec![url])
+        } else {
+            let inserted = 'inserted: {
+                for urls in acc.iter_mut() {
+                    if urls[0].host_str() == url.host_str() {
+                        urls.push(url.clone());
+                        break 'inserted true;
+                    }
+                }
+                false
+            };
+            if !inserted {
+                acc.push(vec![url])
+            };
+        };
+        acc
+    });
+
+    let mut fetchers = vec![];
+    for urls in authors.iter() {
+        let fetch = |urls: Vec<Url>| async {
+            let mut res = vec![];
+            for apub_id in urls.into_iter() {
+                let name = match client
+                    .request(Method::GET, apub_id.to_string())
+                    .header("accept", "application/activity+json")
+                    .send()
+                    .await
+                {
+                    Ok(res) => {
+                        if res.status().is_success() {
+                            match res.json::<Res>().await {
+                                Ok(v) => Ok((apub_id.to_string(), Ok(v.name))),
+                                Err(e) => {
+                                    Err(ServerFnError::ServerError(format!("{apub_id}: {e}")))
+                                }
+                            }
+                        } else {
+                            resp.set_status(res.status());
+                            Ok((
+                                apub_id.to_string(),
+                                res.text().await.map_err(|e| format!("{apub_id}: {e}")),
+                            ))
+                        }
+                    }
+                    Err(e) => Err(ServerFnError::ServerError(format!("{apub_id}: {e}"))),
+                };
+                res.push(name);
+            }
+            res
+        };
+        fetchers.push(fetch(urls.clone()));
+    }
+
+    let res = future::join_all(fetchers).await;
+    let mut result = vec![];
+    for res in res.into_iter().flatten() {
+        result.push(res?);
+    }
+
+    Ok(result)
 }

@@ -467,6 +467,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "619743e34b5ba4e9703bba34deac3427c72507c7159f5fd030aea8cac0cfe341"
 
 [[package]]
+name = "async-compression"
+version = "0.3.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "942c7cd7ae39e91bde4820d74132e9862e62c2f386c3aa90ccf55949f5bad63a"
+dependencies = [
+ "flate2",
+ "futures-core",
+ "memchr",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
 name = "async-mutex"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3035,6 +3048,7 @@ version = "0.11.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13293b639a097af28fc8a90f22add145a9c954e49d77da06263d58cf44d5fb91"
 dependencies = [
+ "async-compression",
  "base64 0.21.0",
  "bytes 1.4.0",
  "encoding_rs",
@@ -4398,6 +4412,7 @@ dependencies = [
  "lazy_static",
  "log",
  "regex",
+ "reqwest",
  "serde",
  "sqlx",
  "strum",
@@ -4428,6 +4443,7 @@ dependencies = [
  "log",
  "rand_core",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "sqlx",
@@ -4445,6 +4461,7 @@ dependencies = [
  "activitypub_federation",
  "actix-session",
  "actix-web",
+ "futures 0.3.28",
  "isolang",
  "leptos",
  "leptos_actix",
@@ -4453,6 +4470,7 @@ dependencies = [
  "leptos_router",
  "log",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "sqlx",

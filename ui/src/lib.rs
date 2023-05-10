@@ -26,4 +26,5 @@ pub fn register_server_functions() {
     _ = GetRoles::register();
     _ = GetLangs::register();
     _ = GetNovel::register();
+    _ = GetUsername::register();
 }

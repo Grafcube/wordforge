@@ -13,6 +13,7 @@ use actix_web::{
 };
 use leptos::view;
 use leptos_actix::{generate_route_list, handle_server_fns, LeptosRoutes};
+use reqwest::Client;
 use std::{env, io};
 use wordforge_api::util::AppState;
 use wordforge_ui::{app::*, register_server_functions};
@@ -43,6 +44,9 @@ async fn main() -> io::Result<()> {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let state = AppState {
         scheme: env::var("SCHEME").expect("SCHEME is required"),
+        client: Client::builder()
+            .build()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     };
     let config = new_database(addr.to_string(), db_url)
         .await
