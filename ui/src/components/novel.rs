@@ -415,10 +415,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                              .map(|a| a.apub_id.clone())
                                              .collect::<Vec<String>>();
                                          set_authors(author_list);
-                                     } <Suspense fallback=move || {
-                                         view! { cx, "Loading..." }
-                                             .into_view(cx)
-                                     }>{author_view}</Suspense>
+                                     } {author_view}
                                  </div>
                                  <div class="flex flex-row justify-start gap-1 overflow-auto">
                                      {novel
