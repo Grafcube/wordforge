@@ -140,13 +140,15 @@ impl ActivityHandler for Add {
         let novel = self.target.dereference_local(data).await?;
 
         let authors = query!(
-            "SELECT authors FROM novels WHERE lower(apub_id)=$1",
+            "SELECT author FROM author_roles WHERE lower(id)=$1",
             novel.apub_id.to_string().to_lowercase()
         )
-        .fetch_one(data.app_data().as_ref())
+        .fetch_all(data.app_data().as_ref())
         .await
         .map_err(|_| anyhow!("Novel not found"))?
-        .authors;
+        .into_iter()
+        .map(|row| row.author)
+        .collect::<Vec<_>>();
 
         if !authors.contains(&user.apub_id) {
             return Err(anyhow!("No write permission: {}", novel.apub_id));

@@ -4,7 +4,6 @@ create table
     preferred_username uuid not null,
     title text not null,
     summary text not null default '',
-    authors text[] not null,
     genre text not null,
     tags text[] not null,
     language text not null,
@@ -21,7 +20,7 @@ create table
   author_roles (
     id text not null,
     author text not null,
-    role text not null,
+    role text not null default 'None',
     primary key (id, author)
   );
 

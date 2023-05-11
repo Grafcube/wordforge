@@ -45,6 +45,7 @@ async fn main() -> io::Result<()> {
     let state = AppState {
         scheme: env::var("SCHEME").expect("SCHEME is required"),
         client: Client::builder()
+            .user_agent(format!("Wordforge/0.1.0 {}", addr))
             .build()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     };

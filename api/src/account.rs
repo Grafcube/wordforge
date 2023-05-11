@@ -28,10 +28,11 @@ pub async fn validate(conn: &PgPool, session: Session) -> UserValidateResult {
     };
     session.renew();
     let name = match query!("SELECT name FROM users WHERE apub_id=$1", id)
-        .fetch_one(conn)
+        .fetch_optional(conn)
         .await
     {
-        Ok(v) => v.name,
+        Ok(Some(v)) => v.name,
+        Ok(None) => return UserValidateResult::Unauthorized("Expired session".to_string()),
         Err(e) => return UserValidateResult::NotFound(e.to_string()),
     };
     UserValidateResult::Ok(name)

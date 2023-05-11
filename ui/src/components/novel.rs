@@ -339,28 +339,31 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
             }
             Ok(users) => {
                 view! { cx,
-                    <ul>
-                        {users
-                            .into_iter()
-                            .map(|res| match res {
-                                (apub_id, Err(e)) => {
-                                    error!("{e}");
-                                    view! { cx,
-                                        <li>
-                                            <a href=apub_id>"<UNKNOWN>"</a>
-                                        </li>
+                    <div class="dark:bg-gray-800 rounded-xl px-4 py-2 my-2">
+                        <span class="text-gray-500 dark:text-gray-400">"Authors"</span>
+                        <div class="flex flex-row justify-start flex-wrap gap-1 text-xl sm:text-base overflow-auto max-h-40">
+                            {users
+                                .into_iter()
+                                .map(|res| match res {
+                                    (apub_id, Err(e)) => {
+                                        error!("{e}");
+                                        view! { cx,
+                                            <a href=apub_id class="w-fit dark:bg-gray-950 rounded-full px-2 py-1">
+                                                "<UNKNOWN>"
+                                            </a>
+                                        }
                                     }
-                                }
-                                (apub_id, Ok(v)) => {
-                                    view! { cx,
-                                        <li>
-                                            <a href=apub_id>{v}</a>
-                                        </li>
+                                    (apub_id, Ok(v)) => {
+                                        view! { cx,
+                                            <a href=apub_id class="w-fit dark:bg-gray-950 rounded-full px-2 py-1">
+                                                {v}
+                                            </a>
+                                        }
                                     }
-                                }
-                            })
-                            .collect::<Vec<_>>()}
-                    </ul>
+                                })
+                                .collect::<Vec<_>>()}
+                        </div>
+                    </div>
                 }
             }
             .into_view(cx),
@@ -379,7 +382,22 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
             }
             Ok(Ok(novel)) => view! { cx,
                                  <h1 class="text-center p-2 text-3xl">{&novel.name}</h1>
-                                 <div class="dark:bg-gray-800 rounded-xl px-4 py-2">
+                                 <div class="flex flex-row gap-1 text-xl sm:text-base">
+                                     <a
+                                         class="dark:bg-gray-800 rounded-full px-2 py-1"
+                                         href={
+                                             let re = regex::Regex::new(r#"\s+"#).unwrap();
+                                             let path = re.replace_all(&novel.genre.to_lowercase(), "_").to_string();
+                                             format!("/explore/{path}")
+                                         }
+                                     >
+                                         {&novel.genre}
+                                     </a>
+                                     <span class="dark:bg-gray-800 rounded-full px-2 py-1">
+                                         {novel.language.to_name()}
+                                     </span>
+                                 </div>
+                                 <div class="dark:bg-gray-800 rounded-xl text-xl sm:text-base overflow-auto max-h-40 my-2 px-4 py-2">
                                      {novel
                                          .summary
                                          .lines()
@@ -402,18 +420,23 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                              .into_view(cx)
                                      }>{author_view}</Suspense>
                                  </div>
-                                 <a href="/todo">{&novel.genre}</a>
-                                 <div>
+                                 <div class="flex flex-row justify-start gap-1 overflow-auto">
                                      {novel
                                          .tags
                                          .iter()
                                          .map(|tag| {
-                                             view! { cx, <span class="p-1">{tag}</span> }
+                                             view! { cx,
+                                                 <a
+                                                     href=format!("/explore/tags/{tag}")
+                                                     class="italic bottom-2 dark:text-gray-500 rounded-full text-xl sm:text-base"
+                                                 >
+                                                     {format!("#{tag}")}
+                                                 </a>
+                                             }
                                                  .into_view(cx)
                                          })
                                          .collect::<Vec<_>>()}
                                  </div>
-                                 <span>{novel.language.to_name()}</span>
                              }
             .into_view(cx),
         })
@@ -478,7 +501,7 @@ pub async fn get_novel(
     }
 }
 
-#[server(GetUsername, "/server")]
+#[server(GetUsername, "/server", "Cbor")]
 pub async fn get_usernames(
     cx: Scope,
     authors: Vec<String>,
@@ -487,7 +510,6 @@ pub async fn get_usernames(
     use futures::future;
     use leptos_actix::ResponseOptions;
     use reqwest::{Method, Url};
-    use serde::Deserialize;
     use wordforge_api::util::AppState;
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
@@ -551,10 +573,7 @@ pub async fn get_usernames(
                             }
                         } else {
                             resp.set_status(res.status());
-                            Ok((
-                                apub_id.to_string(),
-                                res.text().await.map_err(|e| format!("{apub_id}: {e}")),
-                            ))
+                            Ok((apub_id.to_string(), Err(format!("{apub_id}: UNKNOWN"))))
                         }
                     }
                     Err(e) => Err(ServerFnError::ServerError(format!("{apub_id}: {e}"))),

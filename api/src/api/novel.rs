@@ -73,15 +73,14 @@ pub async fn create_novel(
     );
     let id = match query!(
         r#"INSERT INTO novels
-           (apub_id, preferred_username, title, summary, authors, genre, tags,
-           language, sensitive, inbox, outbox, public_key, private_key)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           (apub_id, preferred_username, title, summary, genre, tags, language,
+             sensitive, inbox, outbox, public_key, private_key)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING apub_id"#,
         url,
         uuid,
         title.trim(),
         info.summary.trim(),
-        &[apub_id.clone(),],
         info.genre.to_string(),
         tags.as_slice(),
         lang,
@@ -98,19 +97,17 @@ pub async fn create_novel(
         Err(e) => return CreateNovelResult::InternalServerError(e.to_string()),
     };
 
-    if info.role != Roles::None {
-        if let Err(e) = query!(
-            "INSERT INTO author_roles VALUES ($1, $2, $3)",
-            id,
-            apub_id,
-            info.role.to_string()
-        )
-        .execute(pool.app_data().as_ref())
-        .await
-        {
-            return CreateNovelResult::InternalServerError(e.to_string());
-        };
-    }
+    if let Err(e) = query!(
+        "INSERT INTO author_roles VALUES ($1, $2, $3)",
+        id,
+        apub_id,
+        info.role.to_string()
+    )
+    .execute(pool.app_data().as_ref())
+    .await
+    {
+        return CreateNovelResult::InternalServerError(e.to_string());
+    };
     CreateNovelResult::Ok(uuid.to_string().to_lowercase())
 }
 
