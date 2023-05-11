@@ -59,7 +59,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                     <div class="relative">
                         <textarea
                             class="basic-input max-h-40 overflow-y-auto resize-none peer"
-                            placeholder=""
+                            placeholder=" "
                             name="title"
                             rows=1
                             wrap="soft"
@@ -79,7 +79,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                     <div class="relative">
                         <textarea
                             class="basic-input peer"
-                            placeholder=""
+                            placeholder=" "
                             node_ref=summary
                             name="summary"
                         ></textarea>
@@ -172,7 +172,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                     <div class="relative">
                         <textarea
                             class="basic-input max-h-40 overflow-y-auto resize-none peer"
-                            placeholder=""
+                            placeholder=" "
                             name="tags"
                             rows=1
                             wrap="soft"

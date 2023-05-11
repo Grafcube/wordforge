@@ -36,14 +36,14 @@ fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
     view! { cx,
         <ActionForm action=login class="space-y-4 p-4 w-full">
             <div class="relative">
-                <input type="email" class="basic-input peer" placeholder="" name="email" required/>
+                <input type="email" class="basic-input peer" placeholder=" " name="email" required/>
                 <FloatingLabel target="email">"Email"</FloatingLabel>
             </div>
             <div class="relative">
                 <input
                     type="password"
                     class="basic-input peer"
-                    placeholder=""
+                    placeholder=" "
                     name="password"
                     required
                 />
@@ -130,7 +130,7 @@ fn Register(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
                 <input
                     type="text"
                     class="basic-input peer"
-                    placeholder=""
+                    placeholder=" "
                     name="display_name"
                     required
                 />
@@ -140,21 +140,21 @@ fn Register(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
                 <input
                     type="text"
                     class="basic-input peer"
-                    placeholder=""
+                    placeholder=" "
                     name="username"
                     required
                 />
                 <FloatingLabel target="username">"Username"</FloatingLabel>
             </div>
             <div class="relative">
-                <input type="email" class="basic-input peer" placeholder="" name="email" required/>
+                <input type="email" class="basic-input peer" placeholder=" " name="email" required/>
                 <FloatingLabel target="email">"Email"</FloatingLabel>
             </div>
             <div class="relative">
                 <input
                     type="password"
                     class="basic-input peer"
-                    placeholder=""
+                    placeholder=" "
                     name="password"
                     required
                 />
