@@ -24,6 +24,7 @@ pub fn App(cx: Scope) -> impl IntoView {
             .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     };
 
+    provide_context(cx, validate);
     provide_meta_context(cx);
 
     view! { cx,
@@ -168,13 +169,14 @@ fn Topbar(cx: Scope) -> impl IntoView {
 
 #[component]
 fn Sidebar(cx: Scope) -> impl IntoView {
-    let validator = create_resource(cx, || (), move |_| validate(cx));
+    let validator = use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx);
 
     view! { cx,
-        <div class="fixed flex flex-none flex-col z-40 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:visible">
+        <div class="fixed flex flex-none flex-col z-40 pt-1 pl-0.5 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:visible">
             <Transition fallback=|| ()>
                 {move || {
                     let text = validator
+                        .unwrap()
                         .read(cx)
                         .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
                     match text {
@@ -238,7 +240,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
 
 #[component]
 fn BottomBar(cx: Scope) -> impl IntoView {
-    let validator = create_resource(cx, || (), move |_| validate(cx));
+    let validator = use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx);
 
     view! { cx,
         <div class="fixed flex flex-row z-40 max-h-40 justify-around overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 visible sm:invisible dark:bg-gray-950">
@@ -261,6 +263,7 @@ fn BottomBar(cx: Scope) -> impl IntoView {
             <Transition fallback=|| ()>
                 {move || {
                     let text = validator
+                        .unwrap()
                         .read(cx)
                         .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
                     match text {

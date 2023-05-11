@@ -346,7 +346,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                 .into_iter()
                                 .map(|res| match res {
                                     (apub_id, Err(e)) => {
-                                        error!("{e}");
+                                        log!("{e}");
                                         view! { cx,
                                             <a href=apub_id class="w-fit dark:bg-gray-950 rounded-full px-2 py-1">
                                                 "<UNKNOWN>"

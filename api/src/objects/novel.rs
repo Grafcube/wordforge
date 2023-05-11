@@ -82,13 +82,16 @@ impl DbNovel {
         uuid: Uuid,
         data: &Data<DbHandle>,
     ) -> Result<Option<Self>, anyhow::Error> {
-        let apub_id = query!(
+        let apub_id = match query!(
             "SELECT apub_id FROM novels WHERE preferred_username=$1",
             uuid
         )
-        .fetch_one(data.app_data().as_ref())
+        .fetch_optional(data.app_data().as_ref())
         .await?
-        .apub_id;
+        {
+            None => return Ok(None),
+            Some(v) => v.apub_id,
+        };
 
         Self::read_from_id(Url::parse(apub_id.as_str()).unwrap(), data).await
     }
