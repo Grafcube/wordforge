@@ -335,7 +335,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
         usernames.read(cx).map(|v| match v {
             Err(e) => {
                 error!("usernames: {}", e.to_string());
-                view! { cx, <span>"Something went wrong"</span> }.into_view(cx)
+                view! { cx, <span class="dark:bg-gray-800 rounded-xl px-4 py-2 my-2">"Something went wrong"</span> }.into_view(cx)
             }
             Ok(users) => {
                 view! { cx,
@@ -505,6 +505,7 @@ pub async fn get_usernames(
     cx: Scope,
     authors: Vec<String>,
 ) -> Result<Vec<(String, Result<String, String>)>, ServerFnError> {
+    use actix_web::http::StatusCode;
     use actix_web::web;
     use futures::future;
     use leptos_actix::ResponseOptions;
@@ -565,17 +566,28 @@ pub async fn get_usernames(
                     Ok(res) => {
                         if res.status().is_success() {
                             match res.json::<Res>().await {
-                                Ok(v) => Ok((apub_id.to_string(), Ok(v.name))),
+                                Ok(v) => (apub_id.to_string(), Ok(v.name)),
                                 Err(e) => {
-                                    Err(ServerFnError::ServerError(format!("{apub_id}: {e}")))
+                                    resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);
+                                    (apub_id.to_string(), Err(format!("{apub_id}: {e}")))
                                 }
                             }
                         } else {
                             resp.set_status(res.status());
-                            Ok((apub_id.to_string(), Err(format!("{apub_id}: UNKNOWN"))))
+                            (
+                                apub_id.to_string(),
+                                Err(format!(
+                                    "{}: {}",
+                                    apub_id,
+                                    res.text().await.unwrap_or_else(|e| e.to_string())
+                                )),
+                            )
                         }
                     }
-                    Err(e) => Err(ServerFnError::ServerError(format!("{apub_id}: {e}"))),
+                    Err(e) => {
+                        resp.set_status(StatusCode::GATEWAY_TIMEOUT);
+                        (apub_id.to_string(), Err(format!("{apub_id}: {e}")))
+                    }
                 };
                 res.push(name);
             }
@@ -584,11 +596,10 @@ pub async fn get_usernames(
         fetchers.push(fetch(urls.clone()));
     }
 
-    let res = future::join_all(fetchers).await;
-    let mut result = vec![];
-    for res in res.into_iter().flatten() {
-        result.push(res?);
-    }
-
-    Ok(result)
+    let res = future::join_all(fetchers)
+        .await
+        .into_iter()
+        .flatten()
+        .collect();
+    Ok(res)
 }
