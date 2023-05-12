@@ -22,7 +22,7 @@ actix-web = { version = "4.3.0", features = [
   "actix-tls",
 ], optional = true }
 futures = { version = "0.3.28", optional = true }
-isolang = { version = "2.2.0", features = ["serde", "list_languages"] }
+isolang = { version = "2.2.0", features = ["serde"] }
 leptos = { version = "0.2.5", default-features = false, features = ["serde"] }
 leptos_actix = { version = "0.2.5", optional = true }
 leptos_icons = { version = "0.0.9", features = [
@@ -49,7 +49,7 @@ sqlx = { version = "0.6.2", features = [
 ], optional = true }
 strum = { version = "0.24.1", features = ["derive"], optional = true }
 tracing = { version = "0.1.37", features = ["log"] }
-wasm-bindgen = "0.2.84"
+wasm-bindgen = "=0.2.84"
 web-sys = { version = "0.3.61", features = ["CssStyleDeclaration"] }
 
 [features]
@@ -62,6 +62,7 @@ hydrate = [
 ]
 ssr = [
   "dep:wordforge-api",
+  "isolang/list_languages",
   "leptos/ssr",
   "leptos_meta/ssr",
   "leptos_router/ssr",

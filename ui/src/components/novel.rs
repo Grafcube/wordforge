@@ -415,7 +415,8 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                              .map(|a| a.apub_id.clone())
                                              .collect::<Vec<String>>();
                                          set_authors(author_list);
-                                     } {author_view}
+                                         author_view
+                                     }
                                  </div>
                                  <div class="flex flex-row justify-start gap-1 overflow-auto">
                                      {novel
