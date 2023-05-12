@@ -6,6 +6,7 @@ pub mod app;
 pub mod components;
 pub mod fallback;
 pub(crate) mod path;
+pub mod routes;
 
 #[wasm_bindgen]
 pub fn hydrate() {
@@ -16,7 +17,7 @@ pub fn hydrate() {
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() {
-    use components::{auth::*, novel::*};
+    use routes::{auth::*, novel::*};
 
     _ = ServerLogin::register();
     _ = ServerRegister::register();

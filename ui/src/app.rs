@@ -1,6 +1,6 @@
 use crate::{
-    components::{auth::*, novel::*},
     fallback::*,
+    routes::{auth::*, novel::*},
 };
 use leptos::*;
 use leptos_icons::*;
