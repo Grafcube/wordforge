@@ -186,7 +186,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                             on:input=move |ev| line_input_handler(ev, set_tags)
                             on:paste=move |ev| line_input_handler(ev, set_tags)
                         ></textarea>
-                        <FloatingLabel target="tags">"Tags (Comma separated)"</FloatingLabel>
+                        <FloatingLabel target="tags">"Tags"</FloatingLabel>
                     </div>
                     <input type="hidden" name="cw" value=move || sensitive.get().to_string()/>
                     <div class="flex justify-start">
@@ -419,7 +419,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                          author_view
                                      }
                                  </div>
-                                 <div class="flex flex-row justify-start gap-1 overflow-auto">
+                                 <div class="flex flex-row justify-start gap-2 overflow-auto">
                                      {novel
                                          .tags
                                          .iter()
@@ -427,7 +427,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                              view! { cx,
                                                  <a
                                                      href=format!("/explore/tags/{tag}")
-                                                     class="italic bottom-2 dark:text-gray-500 rounded-full text-xl sm:text-base"
+                                                     class="italic bottom-2 dark:text-gray-500 dark:hover:text-gray-400 rounded-full text-xl sm:text-base"
                                                  >
                                                      {format!("#{tag}")}
                                                  </a>

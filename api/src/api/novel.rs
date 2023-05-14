@@ -1,7 +1,7 @@
 use crate::{
     enums::{Genres, Roles},
     objects::novel::{DbNovel, Novel},
-    util::AppState,
+    util::{AppState, TAG_RE},
     DbHandle,
 };
 use activitypub_federation::{
@@ -57,9 +57,12 @@ pub async fn create_novel(
         None => return CreateNovelResult::BadRequest("Invalid language".to_string()),
         Some(l) => l.to_639_1(),
     };
-    let tags: Vec<String> = sorted(info.tags.split(',').map(|t| t.trim().to_string()))
+    let tags = TAG_RE
+        .find_iter(&info.tags)
+        .map(|t| t.as_str().to_string())
+        .sorted_by(|a, b| a.cmp(b))
         .dedup_by(|a, b| a.to_lowercase() == b.to_lowercase())
-        .collect();
+        .collect_vec();
     let uuid = Uuid::new_v4();
     let keypair = match generate_actor_keypair() {
         Ok(k) => k,
