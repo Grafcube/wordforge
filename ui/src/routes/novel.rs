@@ -397,6 +397,17 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                      <span class="dark:bg-gray-800 rounded-full px-2 py-1">
                                          {novel.language.to_name()}
                                      </span>
+                                     <Show
+                                         when={
+                                             let sensitive = novel.sensitive.clone();
+                                             move || sensitive
+                                         }
+                                         fallback=|_| ()
+                                     >
+                                         <span class="dark:bg-red-600 rounded-full px-2 py-1">
+                                             "Content warning"
+                                         </span>
+                                     </Show>
                                  </div>
                                  <div class="dark:bg-gray-800 rounded-xl text-xl sm:text-base overflow-auto max-h-40 my-2 px-4 py-2">
                                      {novel
