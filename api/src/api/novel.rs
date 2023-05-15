@@ -13,7 +13,7 @@ use activitypub_federation::{
 use actix_session::Session;
 use actix_web::web;
 use isolang::Language;
-use itertools::{sorted, Itertools};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::query;
 use uuid::Uuid;

@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ValidationResult {
     Ok(String),
-    Unauthorized,
+    Unauthorized(String),
     Error(String),
 }
 
@@ -52,10 +52,21 @@ pub fn App(cx: Scope) -> impl IntoView {
                                 {match check_validate(cx) {
                                     None => ().into_view(cx),
                                     Some(ValidationResult::Ok(_)) => {
-                                        view! { cx, <Redirect path="/"/> }
+                                        view! { cx,
+                                            <Redirect
+                                                path="/"
+                                                options=NavigateOptions {
+                                                    replace: true,
+                                                    resolve: Default::default(),
+                                                    scroll: Default::default(),
+                                                    state: Default::default(),
+                                                }
+                                            />
+                                        }
                                             .into_view(cx)
                                     }
-                                    Some(ValidationResult::Unauthorized) => {
+                                    Some(ValidationResult::Unauthorized(e)) => {
+                                        log!("Validation: {}", e);
                                         view! { cx,
                                             <Overlay>
                                                 <Auth/>
@@ -93,8 +104,19 @@ pub fn App(cx: Scope) -> impl IntoView {
                                         }
                                             .into_view(cx)
                                     }
-                                    Some(ValidationResult::Unauthorized) => {
-                                        view! { cx, <Redirect path="/auth"/> }
+                                    Some(ValidationResult::Unauthorized(e)) => {
+                                        log!("Validation: {}", e);
+                                        view! { cx,
+                                            <Redirect
+                                                path="/auth"
+                                                options=NavigateOptions {
+                                                    replace: true,
+                                                    resolve: Default::default(),
+                                                    scroll: Default::default(),
+                                                    state: Default::default(),
+                                                }
+                                            />
+                                        }
                                             .into_view(cx)
                                     }
                                     Some(ValidationResult::Error(e)) => {
@@ -170,10 +192,29 @@ fn Topbar(cx: Scope) -> impl IntoView {
 #[component]
 fn Sidebar(cx: Scope) -> impl IntoView {
     let validator = use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx);
+    let (redirect_path, set_redirect) = create_signal(cx, "/".to_string());
+
+    create_effect(cx, move |_| {
+        let path = window()
+            .location()
+            .pathname()
+            .unwrap_or_else(|_| "/".to_string());
+        set_redirect(path);
+    });
 
     view! { cx,
         <div class="fixed flex flex-none flex-col z-40 pt-1 pl-0.5 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:visible">
-            <Transition fallback=|| ()>
+            <Transition fallback=move || {
+                view! { cx,
+                    <span class="m-1 w-[95%] p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
+                        <Icon
+                            icon=CgIcon::CgSpinner
+                            class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
+                        />
+                    </span>
+                }
+                    .into_view(cx)
+            }>
                 {move || {
                     let text = validator
                         .unwrap()
@@ -202,10 +243,11 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                             }
                                 .into_view(cx)
                         }
-                        Some(ValidationResult::Unauthorized) => {
+                        Some(ValidationResult::Unauthorized(e)) => {
+                            log!("Validation: {}", e);
                             view! { cx,
                                 <A
-                                    href="/auth"
+                                    href=format!("/auth?redirect_to={}", redirect_path())
                                     class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
                                 >
                                     "Sign in / Sign up"
@@ -290,7 +332,8 @@ fn BottomBar(cx: Scope) -> impl IntoView {
                             }
                                 .into_view(cx)
                         }
-                        Some(ValidationResult::Unauthorized) => {
+                        Some(ValidationResult::Unauthorized(e)) => {
+                            log!("Validation: {}", e);
                             view! { cx,
                                 <A href="/auth">
                                     <Icon
@@ -339,10 +382,7 @@ async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
 
     match account::validate(pool.app_data().as_ref(), session).await {
         UserValidateResult::Ok(apub_id) => Ok(ValidationResult::Ok(apub_id)),
-        UserValidateResult::Unauthorized(v) => {
-            log!("{}", v);
-            Ok(ValidationResult::Unauthorized)
-        }
+        UserValidateResult::Unauthorized(v) => Ok(ValidationResult::Unauthorized(v)),
         UserValidateResult::InternalServerError(v) => {
             resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);
             Ok(ValidationResult::Error(v))

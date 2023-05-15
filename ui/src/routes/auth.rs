@@ -1,4 +1,7 @@
-use crate::components::{basicinput::*, errorview::*};
+use crate::{
+    components::{basicinput::*, errorview::*},
+    path::AuthQueries,
+};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -6,13 +9,26 @@ use leptos_router::*;
 #[component]
 pub(crate) fn Auth(cx: Scope) -> impl IntoView {
     let (errormsg, set_errormsg) = create_signal(cx, String::new());
+    let query = use_query::<AuthQueries>(cx);
+    let path = move || {
+        query
+            .with(|q| {
+                q.clone().map(|p| {
+                    p.redirect_to
+                        .is_empty()
+                        .then(|| "/".to_string())
+                        .unwrap_or_else(|| p.redirect_to)
+                })
+            })
+            .unwrap()
+    };
 
     view! { cx,
         <Title text="Sign in or create an account"/>
         <div class="mx-auto w-full">
             <div class="flex flex-col sm:flex-row w-full mx-auto max-w-3xl text-2xl m-4 justify-center text-center place-content-center items-center">
-                <Login set_errormsg=set_errormsg/>
-                <Register set_errormsg=set_errormsg/>
+                <Login redirect_to=path() set_errormsg=set_errormsg/>
+                <Register redirect_to=path() set_errormsg=set_errormsg/>
             </div>
             <div class="flex mx-auto text-2xl m-4 justify-center text-center">
                 <ErrorView message=errormsg/>
@@ -22,7 +38,7 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
+fn Login(cx: Scope, redirect_to: String, set_errormsg: WriteSignal<String>) -> impl IntoView {
     let login = create_server_action::<ServerLogin>(cx);
     let response = login.value();
     let err = move || {
@@ -51,6 +67,7 @@ fn Login(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
             </div>
             <div class="relative">
                 <input type="hidden" name="client_app" value="Web"/>
+                <input type="hidden" name="redirect_to" value=redirect_to/>
                 <input type="submit" class="button-1" value="Sign in"/>
             </div>
             {err}
@@ -65,6 +82,7 @@ pub async fn login(
     password: String,
     client_app: String,
     client_website: Option<String>,
+    redirect_to: String,
 ) -> Result<Result<String, String>, ServerFnError> {
     use activitypub_federation::config::Data;
     use actix_web::http::StatusCode;
@@ -93,7 +111,7 @@ pub async fn login(
     .await
     {
         LoginResult::Ok(apub_id) => {
-            leptos_actix::redirect(cx, "/");
+            leptos_actix::redirect(cx, &redirect_to);
             Ok(Ok(apub_id))
         }
         LoginResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
@@ -113,7 +131,7 @@ pub async fn login(
 }
 
 #[component]
-fn Register(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
+fn Register(cx: Scope, redirect_to: String, set_errormsg: WriteSignal<String>) -> impl IntoView {
     let register = create_server_action::<ServerRegister>(cx);
     let response = register.value();
     let err = move || {
@@ -161,6 +179,7 @@ fn Register(cx: Scope, set_errormsg: WriteSignal<String>) -> impl IntoView {
                 <FloatingLabel target="password">"Password"</FloatingLabel>
             </div>
             <input type="hidden" name="client_app" value="Web"/>
+            <input type="hidden" name="redirect_to" value=redirect_to/>
             <input type="submit" class="button-1" value="Sign up"/>
             {err}
         </ActionForm>
@@ -176,6 +195,7 @@ pub async fn register(
     password: String,
     client_app: String,
     client_website: Option<String>,
+    redirect_to: String,
 ) -> Result<Result<String, String>, ServerFnError> {
     use activitypub_federation::config::Data;
     use actix_web::{http::StatusCode, web};
@@ -205,7 +225,9 @@ pub async fn register(
     )
     .await
     {
-        RegistrationResult::Ok => login(cx, email, password, client_app, client_website).await,
+        RegistrationResult::Ok => {
+            login(cx, email, password, client_app, client_website, redirect_to).await
+        }
         RegistrationResult::BadRequest(e) => {
             resp.set_status(StatusCode::BAD_REQUEST);
             Ok(Err(e))

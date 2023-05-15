@@ -5,3 +5,8 @@ use leptos_router::*;
 pub struct NovelViewParams {
     pub uuid: String,
 }
+
+#[derive(Params, Debug, PartialEq, Clone)]
+pub struct AuthQueries {
+    pub redirect_to: String,
+}
