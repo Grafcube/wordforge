@@ -430,7 +430,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                          author_view
                                      }
                                  </div>
-                                 <div class="flex flex-row justify-start gap-2 overflow-auto">
+                                 <div class="flex flex-row justify-start gap-2 h-fit whitespace-nowrap overflow-x-auto overflow-y-hidden">
                                      {novel
                                          .tags
                                          .iter()
@@ -438,7 +438,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                              view! { cx,
                                                  <a
                                                      href=format!("/explore/tags/{tag}")
-                                                     class="italic bottom-2 dark:text-gray-500 dark:hover:text-gray-400 rounded-full text-xl sm:text-base"
+                                                     class="italic mb-2 mt-auto dark:text-gray-500 dark:hover:text-gray-400 rounded-full text-xl sm:text-base"
                                                  >
                                                      {format!("#{tag}")}
                                                  </a>
