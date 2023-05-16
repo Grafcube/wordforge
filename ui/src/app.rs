@@ -8,7 +8,7 @@ use leptos_meta::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ValidationResult {
     Ok(String),
     Unauthorized(String),
@@ -192,13 +192,22 @@ fn Topbar(cx: Scope) -> impl IntoView {
 #[component]
 fn Sidebar(cx: Scope) -> impl IntoView {
     let validator = use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx);
+    let loc = use_location(cx);
     let (redirect_path, set_redirect) = create_signal(cx, "/".to_string());
+    let valid = create_memo(cx, move |_| {
+        validator
+            .unwrap()
+            .read(cx)
+            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+    });
 
     create_effect(cx, move |_| {
-        let path = window()
-            .location()
-            .pathname()
-            .unwrap_or_else(|_| "/".to_string());
+        let path = format!(
+            "{}{}{}",
+            loc.pathname.get(),
+            loc.search.get(),
+            loc.hash.get()
+        );
         set_redirect(path);
     });
 
@@ -216,11 +225,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                     .into_view(cx)
             }>
                 {move || {
-                    let text = validator
-                        .unwrap()
-                        .read(cx)
-                        .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
-                    match text {
+                    match valid.get() {
                         None => {
                             view! { cx,
                                 <span class="m-1 w-[95%] p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">

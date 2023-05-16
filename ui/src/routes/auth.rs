@@ -20,7 +20,10 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
                         .unwrap_or_else(|| p.redirect_to)
                 })
             })
-            .unwrap()
+            .unwrap_or_else(|e| {
+                error!("AuthQuery: {e}");
+                "/".to_string()
+            })
     };
 
     view! { cx,
@@ -111,7 +114,14 @@ pub async fn login(
     .await
     {
         LoginResult::Ok(apub_id) => {
-            leptos_actix::redirect(cx, &redirect_to);
+            leptos_actix::redirect(
+                cx,
+                if redirect_to == "/auth" {
+                    "/"
+                } else {
+                    &redirect_to
+                },
+            );
             Ok(Ok(apub_id))
         }
         LoginResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
