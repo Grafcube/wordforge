@@ -1,4 +1,7 @@
-use crate::routes::{auth::*, novel::*};
+use crate::{
+    fallback::*,
+    routes::{auth::*, novel::*},
+};
 use leptos::*;
 use leptos_icons::*;
 use leptos_meta::*;
@@ -29,67 +32,73 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Link rel="icon" href="/favicon.svg"/>
         <Title text="Wordforge: Federated creative writing"/>
         <Router>
-            <Overlay>
-                <Suspense fallback=|| ()>
-                    <Routes>
-                        <Route
-                            path="/"
-                            view=|cx| {
-                                view! { cx, <Home/> }
+            <Overlay validator=validate>
+                <Routes>
+                    <Route
+                        path="/"
+                        view=|cx| {
+                            view! { cx, <Home/> }
+                        }
+                    />
+                    <Route
+                        path="/auth"
+                        view=move |cx| {
+                            view! { cx,
+                                <Suspense fallback=|| ()>
+                                    {move || match valid(cx) {
+                                        None => ().into_view(cx),
+                                        Some(ValidationResult::Ok(_)) => {
+                                            view! { cx, <Redirect path="/"/> }
+                                                .into_view(cx)
+                                        }
+                                        Some(ValidationResult::Unauthorized(e)) => {
+                                            log!("Validation: {}", e);
+                                            view! { cx, <Auth/> }
+                                                .into_view(cx)
+                                        }
+                                        Some(ValidationResult::Error(e)) => {
+                                            error!("ValidationResult::Error@app::Router: {}", e);
+                                            view! { cx, <InternalErrorPage/> }
+                                                .into_view(cx)
+                                        }
+                                    }}
+                                </Suspense>
                             }
-                        />
-                        <ProtectedRoute
-                            path="/auth"
-                            redirect_path="/"
-                            condition=move |cx| {
-                                match valid(cx) {
-                                    None => true,
-                                    Some(ValidationResult::Ok(_)) => false,
-                                    Some(ValidationResult::Unauthorized(e)) => {
-                                        log!("Validation: {}", e);
-                                        true
-                                    }
-                                    Some(ValidationResult::Error(e)) => {
-                                        error!("ValidationResult::Error@app::Router: {}", e);
-                                        false
-                                    }
-                                }
+                        }
+                    />
+                    <Route
+                        path="/create"
+                        view=move |cx| {
+                            view! { cx,
+                                <Suspense fallback=|| ()>
+                                    {move || match valid(cx) {
+                                        None => ().into_view(cx),
+                                        Some(ValidationResult::Ok(_)) => {
+                                            view! { cx, <CreateBook/> }
+                                                .into_view(cx)
+                                        }
+                                        Some(ValidationResult::Unauthorized(e)) => {
+                                            log!("Validation: {}", e);
+                                            view! { cx, <Redirect path="/auth"/> }
+                                                .into_view(cx)
+                                        }
+                                        Some(ValidationResult::Error(e)) => {
+                                            error!("ValidationResult::Error@app::Router: {}", e);
+                                            view! { cx, <InternalErrorPage/> }
+                                                .into_view(cx)
+                                        }
+                                    }}
+                                </Suspense>
                             }
-                            view=move |cx| {
-                                view! { cx, <Auth/> }
-                                    .into_view(cx)
-                            }
-                        />
-                        <ProtectedRoute
-                            path="/create"
-                            redirect_path="/auth"
-                            condition=move |cx| {
-                                match valid(cx) {
-                                    None => true,
-                                    Some(ValidationResult::Ok(_)) => true,
-                                    Some(ValidationResult::Unauthorized(e)) => {
-                                        log!("Validation: {}", e);
-                                        false
-                                    }
-                                    Some(ValidationResult::Error(e)) => {
-                                        error!("ValidationResult::Error@app::Router: {}", e);
-                                        false
-                                    }
-                                }
-                            }
-                            view=move |cx| {
-                                view! { cx, <CreateBook/> }
-                                    .into_view(cx)
-                            }
-                        />
-                        <Route
-                            path="/novel/:uuid"
-                            view=|cx| {
-                                view! { cx, <NovelView/> }
-                            }
-                        />
-                    </Routes>
-                </Suspense>
+                        }
+                    />
+                    <Route
+                        path="/novel/:uuid"
+                        view=|cx| {
+                            view! { cx, <NovelView/> }
+                        }
+                    />
+                </Routes>
             </Overlay>
         </Router>
     }
@@ -104,15 +113,36 @@ fn Home(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-fn Overlay(cx: Scope, children: Children) -> impl IntoView {
+fn Overlay(
+    cx: Scope,
+    validator: Resource<(), Result<ValidationResult, ServerFnError>>,
+    children: Children,
+) -> impl IntoView {
+    let loc = use_location(cx);
+    let redirect_path = create_memo(cx, move |_| {
+        format!(
+            "{}{}{}",
+            loc.pathname.get(),
+            loc.search.get(),
+            loc.hash.get()
+        )
+    });
+    create_effect(cx, move |prev| {
+        loc.pathname.track();
+        // Don't run on first load, only subsequent navigations
+        if prev.is_some() {
+            validator.refetch();
+        }
+    });
+
     view! { cx,
         <Body class="main-screen"/>
         <Topbar/>
         <div class="flex flex-row w-screen">
-            <Sidebar/>
+            <Sidebar validator=validator redirect_path=redirect_path/>
             <div class="sm:ml-60 overflow-y-auto w-full">{children(cx)}</div>
         </div>
-        <BottomBar/>
+        <BottomBar validator=validator redirect_path=redirect_path/>
     }
 }
 
@@ -135,30 +165,15 @@ fn Topbar(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-fn Sidebar(cx: Scope) -> impl IntoView {
-    let validator = use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx);
+fn Sidebar(
+    cx: Scope,
+    validator: Resource<(), Result<ValidationResult, ServerFnError>>,
+    redirect_path: Memo<String>,
+) -> impl IntoView {
     let valid = create_memo(cx, move |_| {
-        validator.and_then(|validator| {
-            validator
-                .read(cx)
-                .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
-        })
-    });
-    let loc = use_location(cx);
-    let redirect_path = create_memo(cx, move |_| {
-        format!(
-            "{}{}{}",
-            loc.pathname.get(),
-            loc.search.get(),
-            loc.hash.get()
-        )
-    });
-    create_effect(cx, move |prev| {
-        loc.pathname.track();
-        // Don't run on first load, only subsequent navigations
-        if prev.is_some() {
-            validator.unwrap().refetch();
-        }
+        validator
+            .read(cx)
+            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     });
 
     view! { cx,
@@ -236,8 +251,16 @@ fn Sidebar(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-fn BottomBar(cx: Scope) -> impl IntoView {
-    let validator = use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx);
+fn BottomBar(
+    cx: Scope,
+    validator: Resource<(), Result<ValidationResult, ServerFnError>>,
+    redirect_path: Memo<String>,
+) -> impl IntoView {
+    let valid = create_memo(cx, move |_| {
+        validator
+            .read(cx)
+            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+    });
 
     view! { cx,
         <div class="fixed flex flex-row z-40 max-h-40 justify-around overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 visible sm:invisible dark:bg-gray-950">
@@ -259,15 +282,7 @@ fn BottomBar(cx: Scope) -> impl IntoView {
             />
             <Transition fallback=|| ()>
                 {move || {
-                    let text = validator
-                        .and_then(|validator| {
-                            validator
-                                .read(cx)
-                                .map(|resp| {
-                                    resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string()))
-                                })
-                        });
-                    match text {
+                    match valid() {
                         None => {
                             view! { cx,
                                 <Icon
@@ -294,7 +309,7 @@ fn BottomBar(cx: Scope) -> impl IntoView {
                         Some(ValidationResult::Unauthorized(e)) => {
                             log!("Validation: {}", e);
                             view! { cx,
-                                <A href="/auth">
+                                <A href=format!("/auth?redirect_to={}", redirect_path())>
                                     <Icon
                                         icon=OcIcon::OcPersonAddLg
                                         class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0 cursor-pointer"
