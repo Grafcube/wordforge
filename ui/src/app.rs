@@ -150,23 +150,25 @@ fn Topbar(cx: Scope) -> impl IntoView {
 fn Sidebar(cx: Scope) -> impl IntoView {
     let validator = use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx);
     let loc = use_location(cx);
-    let (redirect_path, set_redirect) = create_signal(cx, "/".to_string());
-    let valid = create_memo(cx, move |_| {
-        validator
-            .unwrap()
-            .read(cx)
-            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
-    });
-
-    create_effect(cx, move |_| {
-        let path = format!(
+    let redirect_path = create_memo(cx, move |_| {
+        // validator.unwrap().refetch();
+        format!(
             "{}{}{}",
             loc.pathname.get(),
             loc.search.get(),
             loc.hash.get()
-        );
-        set_redirect(path);
+        )
     });
+    let valid = create_memo(cx, move |_| {
+        // validator.unwrap().refetch();
+        validator.and_then(|validator| {
+            validator
+                .read(cx)
+                .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+        })
+    });
+
+    // create_effect(cx, move |_| validator.unwrap().refetch());
 
     view! { cx,
         <div class="fixed flex flex-none flex-col z-40 pt-1 pl-0.5 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:visible">
@@ -182,7 +184,7 @@ fn Sidebar(cx: Scope) -> impl IntoView {
                     .into_view(cx)
             }>
                 {move || {
-                    match valid.get() {
+                    match valid() {
                         None => {
                             view! { cx,
                                 <span class="m-1 w-[95%] p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
@@ -267,9 +269,13 @@ fn BottomBar(cx: Scope) -> impl IntoView {
             <Transition fallback=|| ()>
                 {move || {
                     let text = validator
-                        .unwrap()
-                        .read(cx)
-                        .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())));
+                        .and_then(|validator| {
+                            validator
+                                .read(cx)
+                                .map(|resp| {
+                                    resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string()))
+                                })
+                        });
                     match text {
                         None => {
                             view! { cx,
