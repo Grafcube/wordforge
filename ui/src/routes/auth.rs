@@ -88,20 +88,19 @@ pub async fn login(
     redirect_to: String,
 ) -> Result<Result<String, String>, ServerFnError> {
     use activitypub_federation::config::Data;
+    use actix_session::Session;
     use actix_web::http::StatusCode;
-    use leptos_actix::ResponseOptions;
-    use sqlx::PgPool;
-    use std::sync::Arc;
-    use wordforge_api::account::{self, LoginAuthError, LoginResult};
+    use leptos_actix::{extract, ResponseOptions};
+    use wordforge_api::{
+        account::{self, LoginAuthError, LoginResult},
+        DbHandle,
+    };
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
-    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
-    let pool = <Data<Arc<PgPool>> as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-    let session = <actix_session::Session as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let (pool, session) = extract(cx, |pool: Data<DbHandle>, session: Session| async move {
+        (pool, session)
+    })
+    .await?;
 
     match account::login(
         pool.app_data().as_ref(),
@@ -209,7 +208,7 @@ pub async fn register(
 ) -> Result<Result<String, String>, ServerFnError> {
     use activitypub_federation::config::Data;
     use actix_web::{http::StatusCode, web};
-    use leptos_actix::ResponseOptions;
+    use leptos_actix::{extract, ResponseOptions};
     use wordforge_api::{
         account::{self, RegisterAuthError, RegistrationResult},
         util::AppState,
@@ -217,13 +216,11 @@ pub async fn register(
     };
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
-    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
-    let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-    let state = <web::Data<AppState> as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let (pool, state) = extract(
+        cx,
+        |pool: Data<DbHandle>, state: web::Data<AppState>| async move { (pool, state) },
+    )
+    .await?;
 
     match account::register(
         state,

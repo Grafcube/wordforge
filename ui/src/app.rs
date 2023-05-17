@@ -338,21 +338,19 @@ fn BottomBar(
 #[server(UserValidate, "/server")]
 async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
     use activitypub_federation::config::Data;
+    use actix_session::Session;
     use actix_web::http::StatusCode;
-    use leptos_actix::ResponseOptions;
+    use leptos_actix::{extract, ResponseOptions};
     use wordforge_api::{
         account::{self, UserValidateResult},
         DbHandle,
     };
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
-    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
-    let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-    let session = <actix_session::Session as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let (pool, session) = extract(cx, |pool: Data<DbHandle>, session: Session| async move {
+        (pool, session)
+    })
+    .await?;
 
     match account::validate(pool.app_data().as_ref(), session).await {
         UserValidateResult::Ok(apub_id) => Ok(ValidationResult::Ok(apub_id)),

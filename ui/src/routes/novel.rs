@@ -214,8 +214,9 @@ pub async fn create_novel(
     cw: bool,
 ) -> Result<Result<(), String>, ServerFnError> {
     use activitypub_federation::config::Data;
+    use actix_session::Session;
     use actix_web::{http::StatusCode, web};
-    use leptos_actix::ResponseOptions;
+    use leptos_actix::{extract, ResponseOptions};
     use std::str::FromStr;
     use wordforge_api::{
         api::novel::{self, CreateNovelResult, NewNovel},
@@ -225,16 +226,13 @@ pub async fn create_novel(
     };
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
-    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
-    let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-    let state = <web::Data<AppState> as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-    let session = <actix_session::Session as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let (pool, state, session) = extract(
+        cx,
+        |pool: Data<DbHandle>, state: web::Data<AppState>, session: Session| async move {
+            (pool, state, session)
+        },
+    )
+    .await?;
 
     let info = NewNovel {
         title,
@@ -469,15 +467,13 @@ pub async fn get_novel(
     uuid: String,
 ) -> Result<Result<Box<Novel>, String>, ServerFnError> {
     use activitypub_federation::config::Data;
+    use leptos_actix::extract;
     use wordforge_api::{
         api::novel::{self, GetNovelResult},
         DbHandle,
     };
 
-    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
-    let pool = <Data<DbHandle> as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let pool = extract(cx, |pool: Data<DbHandle>| async move { pool }).await?;
 
     match novel::get_novel(uuid, &pool).await {
         GetNovelResult::Ok(v) => {
@@ -519,15 +515,12 @@ pub async fn get_usernames(
     use actix_web::http::StatusCode;
     use actix_web::web;
     use futures::future;
-    use leptos_actix::ResponseOptions;
+    use leptos_actix::{extract, ResponseOptions};
     use reqwest::{Method, Url};
     use wordforge_api::util::AppState;
 
     let resp = use_context::<ResponseOptions>(cx).unwrap();
-    let req = use_context::<actix_web::HttpRequest>(cx).unwrap();
-    let state = <web::Data<AppState> as actix_web::FromRequest>::extract(&req)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    let state = extract(cx, |state: web::Data<AppState>| async move { state }).await?;
     let client = &state.client;
 
     #[derive(Deserialize)]
