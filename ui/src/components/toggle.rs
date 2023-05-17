@@ -4,7 +4,7 @@ use leptos::{ev::*, html::*, *};
 pub fn Toggle(
     cx: Scope,
     value: RwSignal<bool>,
-    node_ref: NodeRef<Input>,
+    #[allow(unused_variables)] node_ref: NodeRef<Input>,
     children: Children,
 ) -> impl IntoView {
     view! { cx,

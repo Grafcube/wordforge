@@ -1,7 +1,4 @@
-use crate::{
-    fallback::*,
-    routes::{auth::*, novel::*},
-};
+use crate::routes::{auth::*, novel::*};
 use leptos::*;
 use leptos_icons::*;
 use leptos_meta::*;
@@ -17,8 +14,8 @@ pub enum ValidationResult {
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
-    let validate = create_resource(cx, || (), move |_| validate(cx));
-    let check_validate = move |cx| {
+    let validate = create_blocking_resource(cx, || (), move |_| validate(cx));
+    let valid = move |cx| {
         validate
             .read(cx)
             .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
@@ -42,97 +39,58 @@ pub fn App(cx: Scope) -> impl IntoView {
                             </Overlay>
                         }
                     }
-                    ssr=SsrMode::Async
                 />
-                <Route
+                <ProtectedRoute
                     path="/auth"
-                    view=move |cx| {
-                        view! { cx,
-                            <Suspense fallback=|| ()>
-                                {match check_validate(cx) {
-                                    None => ().into_view(cx),
-                                    Some(ValidationResult::Ok(_)) => {
-                                        view! { cx,
-                                            <Redirect
-                                                path="/"
-                                                options=NavigateOptions {
-                                                    replace: true,
-                                                    resolve: Default::default(),
-                                                    scroll: Default::default(),
-                                                    state: Default::default(),
-                                                }
-                                            />
-                                        }
-                                            .into_view(cx)
-                                    }
-                                    Some(ValidationResult::Unauthorized(e)) => {
-                                        log!("Validation: {}", e);
-                                        view! { cx,
-                                            <Overlay>
-                                                <Auth/>
-                                            </Overlay>
-                                        }
-                                            .into_view(cx)
-                                    }
-                                    Some(ValidationResult::Error(e)) => {
-                                        error!("ValidationResult::Error@app::Router: {}", e);
-                                        view! { cx,
-                                            <Overlay>
-                                                <InternalErrorPage/>
-                                            </Overlay>
-                                        }
-                                            .into_view(cx)
-                                    }
-                                }}
-                            </Suspense>
+                    redirect_path="/"
+                    condition=move |cx| {
+                        match valid(cx) {
+                            None => true,
+                            Some(ValidationResult::Ok(_)) => false,
+                            Some(ValidationResult::Unauthorized(e)) => {
+                                log!("Validation: {}", e);
+                                true
+                            }
+                            Some(ValidationResult::Error(e)) => {
+                                error!("ValidationResult::Error@app::Router: {}", e);
+                                false
+                            }
                         }
                     }
-                    ssr=SsrMode::Async
+                    view=move |cx| {
+                        view! { cx,
+                            <Overlay>
+                                <Auth/>
+                            </Overlay>
+                        }
+                            .into_view(cx)
+                    }
                 />
-                <Route
+                <ProtectedRoute
                     path="/create"
-                    view=move |cx| {
-                        view! { cx,
-                            <Suspense fallback=|| ()>
-                                {match check_validate(cx) {
-                                    None => ().into_view(cx),
-                                    Some(ValidationResult::Ok(_)) => {
-                                        view! { cx,
-                                            <Overlay>
-                                                <CreateBook/>
-                                            </Overlay>
-                                        }
-                                            .into_view(cx)
-                                    }
-                                    Some(ValidationResult::Unauthorized(e)) => {
-                                        log!("Validation: {}", e);
-                                        view! { cx,
-                                            <Redirect
-                                                path="/auth"
-                                                options=NavigateOptions {
-                                                    replace: true,
-                                                    resolve: Default::default(),
-                                                    scroll: Default::default(),
-                                                    state: Default::default(),
-                                                }
-                                            />
-                                        }
-                                            .into_view(cx)
-                                    }
-                                    Some(ValidationResult::Error(e)) => {
-                                        error!("ValidationResult::Error@app::Router: {}", e);
-                                        view! { cx,
-                                            <Overlay>
-                                                <InternalErrorPage/>
-                                            </Overlay>
-                                        }
-                                            .into_view(cx)
-                                    }
-                                }}
-                            </Suspense>
+                    redirect_path="/auth"
+                    condition=move |cx| {
+                        match valid(cx) {
+                            None => true,
+                            Some(ValidationResult::Ok(_)) => true,
+                            Some(ValidationResult::Unauthorized(e)) => {
+                                log!("Validation: {}", e);
+                                false
+                            }
+                            Some(ValidationResult::Error(e)) => {
+                                error!("ValidationResult::Error@app::Router: {}", e);
+                                false
+                            }
                         }
                     }
-                    ssr=SsrMode::Async
+                    view=move |cx| {
+                        view! { cx,
+                            <Overlay>
+                                <CreateBook/>
+                            </Overlay>
+                        }
+                            .into_view(cx)
+                    }
                 />
                 <Route
                     path="/novel/:uuid"
@@ -143,7 +101,6 @@ pub fn App(cx: Scope) -> impl IntoView {
                             </Overlay>
                         }
                     }
-                    ssr=SsrMode::Async
                 />
             </Routes>
         </Router>

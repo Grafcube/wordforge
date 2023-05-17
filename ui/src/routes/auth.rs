@@ -21,7 +21,7 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
                 })
             })
             .unwrap_or_else(|e| {
-                error!("AuthQuery: {e}");
+                warn!("AuthQuery: {e}");
                 "/".to_string()
             })
     };

@@ -5,6 +5,7 @@ use crate::{
 };
 use isolang::Language;
 use leptos::{ev::KeyboardEvent, html::*, *};
+use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
@@ -86,9 +87,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         <FloatingLabel target="summary">"Summary"</FloatingLabel>
                     </div>
                     <input type="hidden" name="genre" value=move || genre.get()/>
-                    <Transition fallback=move || {
-                        view! { cx, <span>"Loading..."</span> }
-                    }>
+                    <Transition fallback=move || ()>
                         {move || match genres.read(cx) {
                             None => {
                                 view! { cx, <span>"Loading..."</span> }
@@ -114,9 +113,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         }}
                     </Transition>
                     <input type="hidden" name="role" value=move || role.get()/>
-                    <Transition fallback=move || {
-                        view! { cx, <span>"Loading..."</span> }
-                    }>
+                    <Transition fallback=|| ()>
                         {move || match roles.read(cx) {
                             None => {
                                 view! { cx, <span>"Loading..."</span> }
@@ -142,9 +139,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         }}
                     </Transition>
                     <input type="hidden" name="lang" value=move || lang.get()/>
-                    <Transition fallback=move || {
-                        view! { cx, <span>"Loading..."</span> }
-                    }>
+                    <Transition fallback=|| ()>
                         {move || match langs.read(cx) {
                             None => {
                                 view! { cx, <span>"Loading..."</span> }
@@ -456,7 +451,12 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
         <Title text="Novel"/>
         <div class="mx-auto max-w-2xl px-4">
             <Suspense fallback=move || {
-                view! { cx, "Loading..." }
+                view! { cx,
+                    <Icon
+                        icon=CgIcon::CgSpinner
+                        class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
+                    />
+                }
                     .into_view(cx)
             }>{view}</Suspense>
         </div>
@@ -511,7 +511,7 @@ pub async fn get_novel(
     }
 }
 
-#[server(GetUsername, "/server", "Cbor")]
+#[server(GetUsername, "/server")]
 pub async fn get_usernames(
     cx: Scope,
     authors: Vec<String>,
