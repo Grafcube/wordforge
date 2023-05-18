@@ -127,12 +127,9 @@ fn Overlay(
             loc.hash.get()
         )
     });
-    create_effect(cx, move |prev| {
+    create_effect(cx, move |_| {
         loc.pathname.track();
-        // Don't run on first load, only subsequent navigations
-        if prev.is_some() {
-            validator.refetch();
-        }
+        validator.refetch();
     });
 
     view! { cx,
