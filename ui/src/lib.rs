@@ -22,6 +22,7 @@ pub fn register_server_functions() {
     _ = ServerLogin::register();
     _ = ServerRegister::register();
     _ = UserValidate::register();
+    _ = Logout::register();
     _ = CreateNovel::register();
     _ = GetGenres::register();
     _ = GetRoles::register();

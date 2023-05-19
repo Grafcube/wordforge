@@ -362,3 +362,13 @@ async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
         }
     }
 }
+
+#[server(Logout, "/server")]
+async fn logout(cx: Scope) -> Result<(), ServerFnError> {
+    leptos_actix::extract(cx, |session: actix_session::Session| async move {
+        session.purge();
+    })
+    .await?;
+    leptos_actix::redirect(cx, "/");
+    Ok(())
+}
