@@ -334,7 +334,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                 view! { cx,
                     <div class="dark:bg-gray-800 rounded-xl px-4 py-2 my-2">
                         <span class="text-gray-500 dark:text-gray-400">"Authors"</span>
-                        <div class="flex flex-row justify-start flex-wrap gap-1 text-xl sm:text-base overflow-auto max-h-40">
+                        <div class="flex flex-row justify-start flex-wrap gap-1 text-xl md:text-base overflow-auto max-h-40">
                             {users
                                 .into_iter()
                                 .map(|res| match res {
@@ -376,7 +376,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
             Ok(Ok(novel)) => view! { cx,
                                  <h1 class="text-center p-2 text-3xl">{&novel.name}</h1>
                                  <Title text=novel.name.clone()/>
-                                 <div class="flex flex-row gap-1 text-xl sm:text-base">
+                                 <div class="flex flex-row gap-1 text-xl md:text-base">
                                      <a
                                          class="dark:bg-gray-800 rounded-full px-2 py-1"
                                          href={
@@ -402,7 +402,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                          </span>
                                      </Show>
                                  </div>
-                                 <div class="dark:bg-gray-800 rounded-xl text-xl sm:text-base overflow-auto max-h-40 my-2 px-4 py-2">
+                                 <div class="dark:bg-gray-800 rounded-xl text-xl md:text-base overflow-auto max-h-40 my-2 px-4 py-2">
                                      {novel
                                          .summary
                                          .lines()
@@ -431,7 +431,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                              view! { cx,
                                                  <a
                                                      href=format!("/explore/tags/{tag}")
-                                                     class="italic mb-2 mt-auto dark:text-gray-500 dark:hover:text-gray-400 rounded-full text-xl sm:text-base"
+                                                     class="italic mb-2 mt-auto dark:text-gray-500 dark:hover:text-gray-400 rounded-full text-xl md:text-base"
                                                  >
                                                      {format!("#{tag}")}
                                                  </a>

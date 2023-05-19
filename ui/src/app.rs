@@ -136,7 +136,7 @@ fn Overlay(
         <Body class="main-screen"/>
         <div class="flex flex-row w-screen">
             <Sidebar validator=validator redirect_path=redirect_path/>
-            <div class="sm:ml-60 overflow-y-auto w-full">{children(cx)}</div>
+            <div class="md:ml-60 overflow-y-auto w-full">{children(cx)}</div>
         </div>
         <BottomBar validator=validator redirect_path=redirect_path/>
     }
@@ -155,7 +155,7 @@ fn Sidebar(
     });
 
     view! { cx,
-        <div class="fixed flex flex-none flex-col z-40 p-2 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:visible">
+        <div class="fixed flex flex-none flex-col z-40 p-2 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible md:w-60 md:visible">
             <A href="/" class="flex flex-row gap-2 w-full p-2 rounded-md hover:dark:bg-gray-800">
                 <Icon
                     icon=OcIcon::OcHomeLg
@@ -264,7 +264,7 @@ fn BottomBar(
     });
 
     view! { cx,
-        <div class="fixed flex flex-row z-40 max-h-40 justify-around overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 visible sm:invisible dark:bg-gray-950">
+        <div class="fixed flex flex-row z-40 max-h-40 justify-around overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 visible md:invisible dark:bg-gray-950">
             <A href="/">
                 <Icon
                     icon=OcIcon::OcHomeLg

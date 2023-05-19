@@ -29,7 +29,7 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
     view! { cx,
         <Title text="Sign in or create an account"/>
         <div class="mx-auto w-full">
-            <div class="flex flex-col sm:flex-row w-full mx-auto max-w-3xl text-2xl m-4 justify-center text-center place-content-center items-center">
+            <div class="flex flex-col md:flex-row w-full mx-auto max-w-3xl text-2xl m-4 justify-center text-center place-content-center items-center">
                 <Login redirect_to=path() set_errormsg=set_errormsg/>
                 <Register redirect_to=path() set_errormsg=set_errormsg/>
             </div>
