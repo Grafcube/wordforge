@@ -134,30 +134,11 @@ fn Overlay(
 
     view! { cx,
         <Body class="main-screen"/>
-        <Topbar/>
         <div class="flex flex-row w-screen">
             <Sidebar validator=validator redirect_path=redirect_path/>
             <div class="sm:ml-60 overflow-y-auto w-full">{children(cx)}</div>
         </div>
         <BottomBar validator=validator redirect_path=redirect_path/>
-    }
-}
-
-#[component]
-fn Topbar(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <div class="sticky top-0 w-screen z-40 dark:bg-gray-950 m-0 p-0 h-0 sm:h-auto sm:p-1 invisible sm:visible">
-            <A href="/" class="m-2 px-2 w-fit flex items-start align-middle">
-                <img
-                    src="/favicon.svg"
-                    alt="Home"
-                    width="40"
-                    height="40"
-                    class="mx-1 my-auto invert dark:invert-0"
-                />
-                <h1 class="mx-1 my-auto text-3xl text-left">"Wordforge"</h1>
-            </A>
-        </div>
     }
 }
 
@@ -174,10 +155,34 @@ fn Sidebar(
     });
 
     view! { cx,
-        <div class="fixed flex flex-none flex-col z-40 pt-1 pl-0.5 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:visible">
+        <div class="fixed flex flex-none flex-col z-40 p-2 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible sm:w-60 sm:visible">
+            <A href="/" class="flex flex-row gap-2 w-full p-2 rounded-md hover:dark:bg-gray-800">
+                <Icon
+                    icon=OcIcon::OcHomeLg
+                    class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto"
+                />
+                <span class="my-auto">"Home"</span>
+            </A>
+            <A
+                href="/explore"
+                class="flex flex-row gap-2 w-full p-2 rounded-md hover:dark:bg-gray-800"
+            >
+                <Icon icon=LuIcon::LuComponent class="dark:stroke-white py-1 w-10 h-10 my-auto"/>
+                <span class="my-auto">"Local"</span>
+            </A>
+            <A
+                href="/explore/public"
+                class="flex flex-row gap-2 w-full mb-auto p-2 rounded-md hover:dark:bg-gray-800"
+            >
+                <Icon
+                    icon=OcIcon::OcGlobeLg
+                    class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto"
+                />
+                <span class="my-auto">"Public"</span>
+            </A>
             <Transition fallback=move || {
                 view! { cx,
-                    <span class="m-1 w-[95%] p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
+                    <span class="m-2 w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
                         <Icon
                             icon=CgIcon::CgSpinner
                             class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
@@ -190,7 +195,7 @@ fn Sidebar(
                     match valid() {
                         None => {
                             view! { cx,
-                                <span class="m-1 w-[95%] p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
+                                <span class="m-2 w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
                                     <Icon
                                         icon=CgIcon::CgSpinner
                                         class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
@@ -203,9 +208,13 @@ fn Sidebar(
                             view! { cx,
                                 <A
                                     href="/create"
-                                    class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
+                                    class="flex flex-row gap-2 w-full p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
                                 >
-                                    "Create new book"
+                                    <Icon
+                                        icon=OcIcon::OcPencilLg
+                                        class="dark:stroke-white w-10 h-10 py-1 my-auto stroke-0 cursor-pointer"
+                                    />
+                                    <span class="my-auto">"Create new book"</span>
                                 </A>
                             }
                                 .into_view(cx)
@@ -215,9 +224,13 @@ fn Sidebar(
                             view! { cx,
                                 <A
                                     href=format!("/auth?redirect_to={}", redirect_path())
-                                    class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
+                                    class="flex flex-row gap-2 w-full p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
                                 >
-                                    "Sign in / Sign up"
+                                    <Icon
+                                        icon=OcIcon::OcPersonAddLg
+                                        class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0 cursor-pointer"
+                                    />
+                                    <span class="my-auto">"Sign in / Sign up"</span>
                                 </A>
                             }
                                 .into_view(cx)
@@ -225,7 +238,7 @@ fn Sidebar(
                         Some(ValidationResult::Error(e)) => {
                             error!("ValidationResult::Error@app::Sidebar: {}", e);
                             view! { cx,
-                                <span class="m-1 w-[95%] p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700">
+                                <span class="w-full p-2 rounded-md text-center dark:bg-gray-600 hover:dark:bg-gray-700">
                                     "Something went wrong"
                                 </span>
                             }
@@ -234,15 +247,6 @@ fn Sidebar(
                     }
                 }}
             </Transition>
-            <A href="/" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
-                "Home"
-            </A>
-            <A href="/explore" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
-                "Local"
-            </A>
-            <A href="/explore/public" class="m-1 w-[95%] p-2 rounded-md hover:dark:bg-gray-800">
-                "Public"
-            </A>
         </div>
     }
 }

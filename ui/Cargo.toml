@@ -35,6 +35,7 @@ leptos_icons = { version = "0.0.10", features = [
   "OcPersonAddLg",
   "OcPencilLg",
   "OcCircleSlashLg",
+  "LuComponent",
 ], optional = true }
 leptos_meta = { version = "0.3.0", default-features = false }
 leptos_router = "0.3.0"

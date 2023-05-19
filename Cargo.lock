@@ -1891,6 +1891,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "icondata_lu"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad486d1988db53ddf6b502eabf3a5f25d58cdf05f0e797b2154d264eb1d960cb"
+dependencies = [
+ "icondata_core",
+]
+
+[[package]]
 name = "icondata_oc"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2170,6 +2179,7 @@ dependencies = [
  "icondata_cg",
  "icondata_core",
  "icondata_hi",
+ "icondata_lu",
  "icondata_oc",
  "leptos",
  "tracing",
