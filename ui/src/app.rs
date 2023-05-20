@@ -136,7 +136,7 @@ fn Overlay(
         <Body class="main-screen"/>
         <div class="flex flex-row w-screen">
             <Sidebar validator=validator redirect_path=redirect_path/>
-            <div class="md:ml-60 overflow-y-auto w-full">{children(cx)}</div>
+            <div class="mb-12 md:mb-0 md:ml-60 overflow-y-auto w-full">{children(cx)}</div>
         </div>
         <BottomBar validator=validator redirect_path=redirect_path/>
     }
@@ -155,7 +155,7 @@ fn Sidebar(
     });
 
     view! { cx,
-        <div class="fixed flex flex-none flex-col z-40 p-2 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 invisible md:w-60 md:visible">
+        <div class="fixed md:flex flex-none flex-col z-40 p-2 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 hidden md:w-60">
             <A href="/" class="flex flex-row gap-2 w-full p-2 rounded-md hover:dark:bg-gray-800">
                 <Icon
                     icon=OcIcon::OcHomeLg
@@ -172,7 +172,7 @@ fn Sidebar(
             </A>
             <A
                 href="/explore/public"
-                class="flex flex-row gap-2 w-full mb-auto p-2 rounded-md hover:dark:bg-gray-800"
+                class="flex flex-row gap-2 w-full p-2 rounded-md hover:dark:bg-gray-800"
             >
                 <Icon
                     icon=OcIcon::OcGlobeLg
@@ -180,7 +180,8 @@ fn Sidebar(
                 />
                 <span class="my-auto">"Public"</span>
             </A>
-            <Transition fallback=move || {
+            <span class="my-auto"></span>
+            <Suspense fallback=move || {
                 view! { cx,
                     <span class="m-2 w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
                         <Icon
@@ -246,7 +247,7 @@ fn Sidebar(
                         }
                     }
                 }}
-            </Transition>
+            </Suspense>
         </div>
     }
 }
@@ -264,7 +265,7 @@ fn BottomBar(
     });
 
     view! { cx,
-        <div class="fixed flex flex-row z-40 max-h-40 justify-around overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 visible md:invisible dark:bg-gray-950">
+        <div class="fixed flex flex-row z-40 max-h-12 justify-around overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 md:hidden dark:bg-gray-950">
             <A href="/">
                 <Icon
                     icon=OcIcon::OcHomeLg
