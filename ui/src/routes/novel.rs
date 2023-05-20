@@ -339,7 +339,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                 .into_iter()
                                 .map(|res| match res {
                                     (apub_id, Err(e)) => {
-                                        log!("{e}");
+                                        log!("UNKNOWN: {e}");
                                         view! { cx,
                                             <a href=apub_id class="w-fit dark:bg-gray-950 rounded-full px-2 py-1">
                                                 "<UNKNOWN>"
@@ -512,21 +512,13 @@ pub async fn get_usernames(
     cx: Scope,
     authors: Vec<String>,
 ) -> Result<Vec<(String, Result<String, String>)>, ServerFnError> {
-    use actix_web::http::StatusCode;
-    use actix_web::web;
+    use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
     use futures::future;
-    use leptos_actix::{extract, ResponseOptions};
-    use reqwest::{Method, Url};
-    use wordforge_api::util::AppState;
+    use leptos_actix::extract;
+    use reqwest::Url;
+    use wordforge_api::{objects::person::User, DbHandle};
 
-    let resp = use_context::<ResponseOptions>(cx).unwrap();
-    let state = extract(cx, |state: web::Data<AppState>| async move { state }).await?;
-    let client = &state.client;
-
-    #[derive(Deserialize)]
-    struct Res {
-        name: String,
-    }
+    let pool = extract(cx, |pool: Data<DbHandle>| async move { pool }).await?;
 
     let mut urls = vec![];
     for apub_id in authors.iter() {
@@ -558,46 +550,44 @@ pub async fn get_usernames(
 
     let mut fetchers = vec![];
     for urls in authors.iter() {
-        let fetch = |urls: Vec<Url>| async {
+        let fetch = |urls: Vec<ObjectId<User>>| async {
             let mut res = vec![];
             for apub_id in urls.into_iter() {
-                let name = match client
-                    .request(Method::GET, apub_id.to_string())
-                    .header("accept", "application/activity+json")
-                    .send()
+                let user = apub_id
+                    .dereference(&pool)
                     .await
-                {
-                    Ok(res) => {
-                        if res.status().is_success() {
-                            match res.json::<Res>().await {
-                                Ok(v) => (apub_id.to_string(), Ok(v.name)),
-                                Err(e) => {
-                                    resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);
-                                    (apub_id.to_string(), Err(format!("{apub_id}: {e}")))
-                                }
-                            }
-                        } else {
-                            resp.set_status(res.status());
-                            (
-                                apub_id.to_string(),
-                                Err(format!(
-                                    "{}: {}",
-                                    apub_id,
-                                    res.text().await.unwrap_or_else(|e| e.to_string())
-                                )),
+                    .map_err(|e| format!("{apub_id}: {e}"));
+                let (href, name) = match user {
+                    Ok(user) => (
+                        format!(
+                            "/users/{}{}",
+                            user.preferred_username,
+                            format!(
+                                "@{}{}",
+                                apub_id.inner().host_str().expect("apub_id hostname"),
+                                apub_id
+                                    .inner()
+                                    .port()
+                                    .map(|p| format!(":{}", p))
+                                    .unwrap_or(String::new())
                             )
-                        }
-                    }
-                    Err(e) => {
-                        resp.set_status(StatusCode::GATEWAY_TIMEOUT);
-                        (apub_id.to_string(), Err(format!("{apub_id}: {e}")))
-                    }
+                        ),
+                        Ok(user.name),
+                    ),
+                    Err(e) => (
+                        apub_id.inner().to_string(),
+                        Err(format!("{}: {}", apub_id.inner(), e)),
+                    ),
                 };
-                res.push(name);
+                res.push((href, name));
             }
             res
         };
-        fetchers.push(fetch(urls.clone()));
+        fetchers.push(fetch(
+            urls.into_iter()
+                .map(|u| ObjectId::<User>::parse(u.as_str()).unwrap())
+                .collect(),
+        ));
     }
 
     let res = future::join_all(fetchers)

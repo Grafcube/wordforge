@@ -195,7 +195,7 @@ fn Sidebar(
             <span class="my-auto"></span>
             <Suspense fallback=move || {
                 view! { cx,
-                    <span class="m-2 w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
+                    <span class="w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
                         <Icon
                             icon=CgIcon::CgSpinner
                             class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
@@ -208,7 +208,7 @@ fn Sidebar(
                     match valid() {
                         None => {
                             view! { cx,
-                                <span class="m-2 w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
+                                <span class="w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
                                     <Icon
                                         icon=CgIcon::CgSpinner
                                         class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"

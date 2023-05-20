@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wordforge-api = { path = "../api", optional = true }
-activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust", rev = "99cdbb5", version = "0.4.0", default-features = false, features = [
+activitypub_federation = { path = "../../activitypub-federation-rust", default-features = false, features = [
   "actix-web",
 ], optional = true }
 actix-session = { version = "0.7.2", features = [
