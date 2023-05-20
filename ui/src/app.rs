@@ -153,6 +153,18 @@ fn Sidebar(
             .read(cx)
             .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     });
+    let logout = create_action(cx, move |_: &()| logout(cx));
+    let logout_res = logout.value();
+
+    create_effect(cx, move |_| match logout_res() {
+        None => (),
+        Some(Err(e)) => error!("{}", e.to_string()),
+        Some(Ok(_)) => {
+            if let Err(e) = use_navigate(cx)("/", NavigateOptions::default()) {
+                error!("{}", e.to_string());
+            }
+        }
+    });
 
     view! { cx,
         <div class="fixed md:flex flex-none flex-col z-40 p-2 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 hidden md:w-60">
@@ -248,6 +260,22 @@ fn Sidebar(
                     }
                 }}
             </Suspense>
+            <Show
+                when=move || { if let Some(ValidationResult::Ok(_)) = valid() { true } else { false } }
+                fallback=|_| ()
+            >
+                <div class="flex flex-row gap-2 w-full p-2">
+                    <span class="flex-none w-8 h-8 my-auto rounded-full cursor-pointer bg-pink-500">
+                        <p class="hidden">"TODO: Account/Profile flyout menu"</p>
+                    </span>
+                    <button
+                        class="my-auto w-full p-2 rounded-md hover:dark:bg-gray-800"
+                        on:click=move |_| logout.dispatch(())
+                    >
+                        "Logout"
+                    </button>
+                </div>
+            </Show>
         </div>
     }
 }
@@ -373,7 +401,5 @@ async fn logout(cx: Scope) -> Result<(), ServerFnError> {
     leptos_actix::extract(cx, |session: actix_session::Session| async move {
         session.purge();
     })
-    .await?;
-    leptos_actix::redirect(cx, "/");
-    Ok(())
+    .await
 }
