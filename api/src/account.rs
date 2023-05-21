@@ -58,7 +58,7 @@ pub async fn login(
     client_app: String,
     client_website: Option<String>,
 ) -> LoginResult {
-    #[derive(Serialize, Deserialize, Validate)]
+    #[derive(Deserialize, Validate)]
     struct LoginData {
         #[validate(email)]
         email: String,
@@ -193,12 +193,11 @@ pub async fn register(
     }
 
     let salt = SaltString::generate(&mut OsRng);
-    let password = match Argon2::default()
-        .hash_password(info.password.clone().into_bytes().as_slice(), &salt)
-    {
-        Ok(p) => p.to_string(),
-        Err(e) => return RegistrationResult::InternalServerError(e.to_string()),
-    };
+    let password =
+        match Argon2::default().hash_password(info.password.into_bytes().as_slice(), &salt) {
+            Ok(p) => p.to_string(),
+            Err(e) => return RegistrationResult::InternalServerError(e.to_string()),
+        };
     let keypair = match generate_actor_keypair() {
         Ok(k) => k,
         Err(e) => return RegistrationResult::InternalServerError(e.to_string()),

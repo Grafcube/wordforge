@@ -2,6 +2,10 @@
 
 > 🚧 This is still in active development. Contributions are welcome! 🚧
 
+<a href="https://codeberg.org/Grafcube/wordforge">
+    <img alt="Get it on Codeberg" src="https://get-it-on.codeberg.org/get-it-on-white-on-black.svg" height="60">
+</a>
+
 A place where anyone can write novels using markdown. Designed with federation
 using ActivityPub.
 
