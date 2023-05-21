@@ -193,73 +193,75 @@ fn Sidebar(
                 <span class="my-auto">"Public"</span>
             </A>
             <span class="my-auto"></span>
-            <Suspense fallback=move || {
-                view! { cx,
-                    <span class="w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
-                        <Icon
-                            icon=CgIcon::CgSpinner
-                            class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
-                        />
-                    </span>
-                }
-                    .into_view(cx)
-            }>
-                {move || {
-                    match valid() {
-                        None => {
-                            view! { cx,
-                                <span class="w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
-                                    <Icon
-                                        icon=CgIcon::CgSpinner
-                                        class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
-                                    />
-                                </span>
-                            }
-                                .into_view(cx)
-                        }
-                        Some(ValidationResult::Ok(_)) => {
-                            view! { cx,
-                                <A
-                                    href="/create"
-                                    class="flex flex-row gap-2 w-full p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
-                                >
-                                    <Icon
-                                        icon=OcIcon::OcPencilLg
-                                        class="dark:stroke-white w-10 h-10 py-1 my-auto stroke-0 cursor-pointer"
-                                    />
-                                    <span class="my-auto">"Create new book"</span>
-                                </A>
-                            }
-                                .into_view(cx)
-                        }
-                        Some(ValidationResult::Unauthorized(e)) => {
-                            log!("Validation: {}", e);
-                            view! { cx,
-                                <A
-                                    href=format!("/auth?redirect_to={}", redirect_path())
-                                    class="flex flex-row gap-2 w-full p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
-                                >
-                                    <Icon
-                                        icon=OcIcon::OcPersonAddLg
-                                        class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0 cursor-pointer"
-                                    />
-                                    <span class="my-auto">"Sign in / Sign up"</span>
-                                </A>
-                            }
-                                .into_view(cx)
-                        }
-                        Some(ValidationResult::Error(e)) => {
-                            error!("ValidationResult::Error@app::Sidebar: {}", e);
-                            view! { cx,
-                                <span class="w-full p-2 rounded-md text-center dark:bg-gray-600 hover:dark:bg-gray-700">
-                                    "Something went wrong"
-                                </span>
-                            }
-                                .into_view(cx)
-                        }
+            <div class="w-full">
+                <Transition fallback=move || {
+                    view! { cx,
+                        <span class="w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
+                            <Icon
+                                icon=CgIcon::CgSpinner
+                                class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
+                            />
+                        </span>
                     }
-                }}
-            </Suspense>
+                        .into_view(cx)
+                }>
+                    {move || {
+                        match valid() {
+                            None => {
+                                view! { cx,
+                                    <span class="w-full p-2 rounded-md text-center cursor-wait dark:bg-purple-600 hover:dark:bg-purple-700">
+                                        <Icon
+                                            icon=CgIcon::CgSpinner
+                                            class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin pointer-events-none"
+                                        />
+                                    </span>
+                                }
+                                    .into_view(cx)
+                            }
+                            Some(ValidationResult::Ok(_)) => {
+                                view! { cx,
+                                    <A
+                                        href="/create"
+                                        class="flex flex-row gap-2 w-full p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
+                                    >
+                                        <Icon
+                                            icon=OcIcon::OcPencilLg
+                                            class="dark:stroke-white w-10 h-10 py-1 my-auto stroke-0 cursor-pointer"
+                                        />
+                                        <span class="my-auto">"Create new book"</span>
+                                    </A>
+                                }
+                                    .into_view(cx)
+                            }
+                            Some(ValidationResult::Unauthorized(e)) => {
+                                log!("Validation: {}", e);
+                                view! { cx,
+                                    <A
+                                        href=format!("/auth?redirect_to={}", redirect_path())
+                                        class="flex flex-row gap-2 w-full p-2 rounded-md text-center dark:bg-purple-600 hover:dark:bg-purple-700"
+                                    >
+                                        <Icon
+                                            icon=OcIcon::OcPersonAddLg
+                                            class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0 cursor-pointer"
+                                        />
+                                        <span class="my-auto">"Sign in / Sign up"</span>
+                                    </A>
+                                }
+                                    .into_view(cx)
+                            }
+                            Some(ValidationResult::Error(e)) => {
+                                error!("ValidationResult::Error@app::Sidebar: {}", e);
+                                view! { cx,
+                                    <span class="w-full p-2 rounded-md text-center dark:bg-gray-600 hover:dark:bg-gray-700">
+                                        "Something went wrong"
+                                    </span>
+                                }
+                                    .into_view(cx)
+                            }
+                        }
+                    }}
+                </Transition>
+            </div>
             <Show
                 when=move || { if let Some(ValidationResult::Ok(_)) = valid() { true } else { false } }
                 fallback=|_| ()

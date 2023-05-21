@@ -87,10 +87,15 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         <FloatingLabel target="summary">"Summary"</FloatingLabel>
                     </div>
                     <input type="hidden" name="genre" value=move || genre.get()/>
-                    <Transition fallback=move || ()>
+                    <Transition fallback=|| ()>
                         {move || match genres.read(cx) {
                             None => {
-                                view! { cx, <span>"Loading..."</span> }
+                                view! { cx,
+                                    <Icon
+                                        icon=CgIcon::CgSpinner
+                                        class="block dark:stroke-white py-1 w-10 h-10 mx-auto animate-spin pointer-events-none"
+                                    />
+                                }
                                     .into_view(cx)
                             }
                             Some(Ok(items)) => {
@@ -116,7 +121,12 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                     <Transition fallback=|| ()>
                         {move || match roles.read(cx) {
                             None => {
-                                view! { cx, <span>"Loading..."</span> }
+                                view! { cx,
+                                    <Icon
+                                        icon=CgIcon::CgSpinner
+                                        class="block dark:stroke-white py-1 w-10 h-10 mx-auto animate-spin pointer-events-none"
+                                    />
+                                }
                                     .into_view(cx)
                             }
                             Some(Ok(items)) => {
@@ -142,7 +152,12 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                     <Transition fallback=|| ()>
                         {move || match langs.read(cx) {
                             None => {
-                                view! { cx, <span>"Loading..."</span> }
+                                view! { cx,
+                                    <Icon
+                                        icon=CgIcon::CgSpinner
+                                        class="block dark:stroke-white py-1 w-10 h-10 mx-auto animate-spin pointer-events-none"
+                                    />
+                                }
                                     .into_view(cx)
                             }
                             Some(Ok(items)) => {
