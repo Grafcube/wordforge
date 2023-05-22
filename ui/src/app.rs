@@ -262,22 +262,21 @@ fn Sidebar(
                     }}
                 </Transition>
             </div>
-            <Show
-                when=move || { if let Some(ValidationResult::Ok(_)) = valid() { true } else { false } }
-                fallback=|_| ()
-            >
-                <div class="flex flex-row gap-2 w-full p-2">
-                    <span class="flex-none w-8 h-8 my-auto rounded-full cursor-pointer bg-pink-500">
-                        <p class="hidden">"TODO: Account/Profile flyout menu"</p>
-                    </span>
-                    <button
-                        class="my-auto w-full p-2 rounded-md hover:dark:bg-gray-800"
-                        on:click=move |_| logout.dispatch(())
-                    >
-                        "Logout"
-                    </button>
-                </div>
-            </Show>
+            <Transition fallback=|| ()>
+                <Show when=move || matches!(valid(), Some(ValidationResult::Ok(_))) fallback=|_| ()>
+                    <div class="flex flex-row gap-2 w-full p-2">
+                        <span class="flex-none w-8 h-8 my-auto rounded-full cursor-pointer bg-pink-500">
+                            <p class="hidden">"TODO: Account/Profile flyout menu"</p>
+                        </span>
+                        <button
+                            class="my-auto w-full p-2 rounded-md hover:dark:bg-gray-800"
+                            on:click=move |_| logout.dispatch(())
+                        >
+                            "Logout"
+                        </button>
+                    </div>
+                </Show>
+            </Transition>
         </div>
     }
 }
