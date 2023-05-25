@@ -391,7 +391,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
             Ok(Ok(novel)) => view! { cx,
                                  <h1 class="text-center p-2 text-3xl">{&novel.name}</h1>
                                  <Title text=novel.name.clone()/>
-                                 <div class="flex flex-row gap-1 text-xl md:text-base">
+                                 <div class="flex flex-row overflow-auto whitespace-nowrap gap-1 text-xl md:text-base">
                                      <a
                                          class="dark:bg-gray-800 rounded-full px-2 py-1"
                                          href={

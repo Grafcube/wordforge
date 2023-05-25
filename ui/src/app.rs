@@ -128,36 +128,14 @@ fn Overlay(
             loc.hash.get()
         )
     });
-    create_effect(cx, move |_| {
-        loc.pathname.track();
-        validator.refetch();
-    });
-
-    view! { cx,
-        <Body class="main-screen"/>
-        <div class="flex flex-row w-screen">
-            <Sidebar validator=validator redirect_path=redirect_path/>
-            <div class="mb-12 md:mb-0 md:ml-60 overflow-y-auto w-full">{children(cx)}</div>
-        </div>
-        <BottomBar validator=validator redirect_path=redirect_path/>
-    }
-}
-
-#[component]
-fn Sidebar(
-    cx: Scope,
-    validator: Resource<(), Result<ValidationResult, ServerFnError>>,
-    redirect_path: Memo<String>,
-) -> impl IntoView {
-    let valid = create_memo(cx, move |_| {
-        validator
-            .read(cx)
-            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
-    });
-    let (name, set_name) = create_signal::<Option<String>>(cx, None);
-    let panel = create_rw_signal(cx, false);
     let logout = create_action(cx, move |_: &()| logout(cx));
     let logout_res = logout.value();
+
+    create_effect(cx, move |_| {
+        loc.pathname.track();
+        logout_res.track();
+        validator.refetch();
+    });
 
     create_effect(cx, move |_| match logout_res() {
         None => (),
@@ -168,6 +146,31 @@ fn Sidebar(
             }
         }
     });
+
+    view! { cx,
+        <Body class="main-screen"/>
+        <div class="flex flex-row w-screen">
+            <Sidebar validator=validator logout=logout redirect_path=redirect_path/>
+            <div class="mb-12 md:mb-0 md:ml-60 overflow-y-auto w-full">{children(cx)}</div>
+        </div>
+        <BottomBar validator=validator logout=logout redirect_path=redirect_path/>
+    }
+}
+
+#[component]
+fn Sidebar(
+    cx: Scope,
+    validator: Resource<(), Result<ValidationResult, ServerFnError>>,
+    logout: Action<(), Result<(), ServerFnError>>,
+    redirect_path: Memo<String>,
+) -> impl IntoView {
+    let valid = create_memo(cx, move |_| {
+        validator
+            .read(cx)
+            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+    });
+    let (name, set_name) = create_signal::<Option<String>>(cx, None);
+    let panel = create_rw_signal(cx, false);
 
     view! { cx,
         <div class="fixed md:flex flex-none flex-col z-40 p-2 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 hidden md:w-60">
@@ -327,6 +330,7 @@ fn Sidebar(
 fn BottomBar(
     cx: Scope,
     validator: Resource<(), Result<ValidationResult, ServerFnError>>,
+    logout: Action<(), Result<(), ServerFnError>>,
     redirect_path: Memo<String>,
 ) -> impl IntoView {
     let valid = create_memo(cx, move |_| {
@@ -335,25 +339,16 @@ fn BottomBar(
             .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     });
     let panel = create_rw_signal(cx, false);
-    let logout = create_action(cx, move |_: &()| logout(cx));
-    let logout_res = logout.value();
-
-    create_effect(cx, move |_| match logout_res() {
-        None => (),
-        Some(Err(e)) => error!("{}", e.to_string()),
-        Some(Ok(_)) => {
-            if let Err(e) = use_navigate(cx)("/", NavigateOptions::default()) {
-                error!("{}", e.to_string());
-            }
-        }
-    });
 
     view! { cx,
         <div class="fixed flex flex-col z-40 rounded-t-xl overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 md:hidden dark:bg-gray-950">
             <Panel when=panel class="p-2 w-full">
                 <button
                     class="relative flex flex-row gap-3 my-auto text-left w-full p-3 rounded-md hover:dark:bg-gray-900"
-                    on:click=move |_| logout.dispatch(())
+                    on:click=move |_| {
+                        logout.dispatch(());
+                        panel.set(false);
+                    }
                 >
                     <Icon
                         icon=OcIcon::OcSignOutLg
