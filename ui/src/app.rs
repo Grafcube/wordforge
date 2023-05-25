@@ -154,7 +154,7 @@ fn Sidebar(
             .read(cx)
             .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     });
-    let (apub_id, set_apub_id) = create_signal::<Option<String>>(cx, None);
+    let (name, set_name) = create_signal::<Option<String>>(cx, None);
     let panel = create_rw_signal(cx, false);
     let logout = create_action(cx, move |_: &()| logout(cx));
     let logout_res = logout.value();
@@ -268,8 +268,8 @@ fn Sidebar(
             <Transition fallback=|| ()>
                 <Show
                     when=move || {
-                        if let Some(ValidationResult::Ok(apub_id)) = valid() {
-                            set_apub_id(Some(apub_id));
+                        if let Some(ValidationResult::Ok(name)) = valid() {
+                            set_name(Some(name));
                             true
                         } else {
                             false
@@ -279,15 +279,31 @@ fn Sidebar(
                 >
                     <button
                         on:click=move |_| panel.set(!panel())
-                        class="flex flex-row gap-2 w-full mt-2 p-2 rounded-md hover:dark:bg-gray-800"
+                        class="flex flex-row gap-3 w-full mt-2 p-2 rounded-md hover:dark:bg-gray-800"
                     >
                         <span class="flex-none w-10 h-10 my-auto rounded-full bg-pink-500"></span>
                         <span class="my-auto w-full rounded-md text-left whitespace-nowrap overflow-hidden overflow-ellipsis">
-                            {apub_id()}
+                            {name()}
                         </span>
+                        <Show
+                            when=panel
+                            fallback=move |cx| {
+                                view! { cx,
+                                    <Icon
+                                        icon=HiIcon::HiChevronUpSolidLg
+                                        class="dark:stroke-white my-auto ml-auto h-8 w-8 pointer-events-none"
+                                    />
+                                }
+                            }
+                        >
+                            <Icon
+                                icon=HiIcon::HiChevronDownSolidLg
+                                class="dark:stroke-white my-auto ml-auto h-8 w-8 pointer-events-none"
+                            />
+                        </Show>
                         <Panel
                             when=panel
-                            class="absolute flex flex-col z-50 left-2 bottom-20 mx-0 p-2 w-[94%] dark:bg-gray-900 rounded-md"
+                            class="absolute flex flex-col z-50 left-2 bottom-[4.5rem] mx-0 p-2 w-[94%] dark:bg-gray-900 rounded-md"
                         >
                             <button
                                 class="flex flex-row gap-2 my-auto text-left w-full p-2 rounded-md hover:dark:bg-gray-800"
@@ -318,76 +334,104 @@ fn BottomBar(
             .read(cx)
             .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     });
+    let panel = create_rw_signal(cx, false);
+    let logout = create_action(cx, move |_: &()| logout(cx));
+    let logout_res = logout.value();
+
+    create_effect(cx, move |_| match logout_res() {
+        None => (),
+        Some(Err(e)) => error!("{}", e.to_string()),
+        Some(Ok(_)) => {
+            if let Err(e) = use_navigate(cx)("/", NavigateOptions::default()) {
+                error!("{}", e.to_string());
+            }
+        }
+    });
 
     view! { cx,
-        <div class="fixed flex flex-row z-40 max-h-12 justify-around overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 md:hidden dark:bg-gray-950">
-            <A href="/">
+        <div class="fixed flex flex-col z-40 rounded-t-xl overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 md:hidden dark:bg-gray-950">
+            <Panel when=panel class="p-2 w-full">
+                <button
+                    class="relative flex flex-row gap-3 my-auto text-left w-full p-3 rounded-md hover:dark:bg-gray-900"
+                    on:click=move |_| logout.dispatch(())
+                >
+                    <Icon
+                        icon=OcIcon::OcSignOutLg
+                        class="dark:stroke-white w-6 h-6 my-auto stroke-0 pointer-events-none"
+                    />
+                    <span class="my-auto">"Logout"</span>
+                </button>
+            </Panel>
+            <div class="flex flex-row max-h-12 justify-around">
+                <A href="/">
+                    <Icon
+                        icon=OcIcon::OcHomeLg
+                        class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto"
+                    />
+                </A>
+                <A href="/explore">
+                    <Icon
+                        icon=OcIcon::OcGlobeLg
+                        class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto"
+                    />
+                </A>
                 <Icon
-                    icon=OcIcon::OcHomeLg
-                    class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto"
+                    icon=OcIcon::OcSearchLg
+                    class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto cursor-pointer"
                 />
-            </A>
-            <A href="/explore">
-                <Icon
-                    icon=OcIcon::OcGlobeLg
-                    class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto"
-                />
-            </A>
-            <Icon
-                icon=OcIcon::OcSearchLg
-                class="dark:stroke-white py-1 w-10 h-10 stroke-0 my-auto cursor-pointer"
-            />
-            <Transition fallback=|| ()>
-                {move || {
-                    match valid() {
-                        None => {
-                            view! { cx,
-                                <Icon
-                                    icon=CgIcon::CgSpinner
-                                    class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin cursor-wait"
-                                />
-                            }
-                                .into_view(cx)
-                        }
-                        Some(ValidationResult::Ok(_)) => {
-                            view! { cx,
-                                <A href="/create">
+                <Transition fallback=|| ()>
+                    {move || {
+                        match valid() {
+                            None => {
+                                view! { cx,
                                     <Icon
-                                        icon=OcIcon::OcPencilLg
-                                        class="dark:stroke-white w-10 h-10 py-1 my-auto stroke-0 cursor-pointer"
+                                        icon=CgIcon::CgSpinner
+                                        class="dark:stroke-white py-1 w-10 h-10 m-auto animate-spin cursor-wait"
                                     />
-                                </A>
-                                <span class="w-8 h-8 my-auto rounded-full cursor-pointer bg-pink-500">
-                                    <p class="hidden">"TODO: Account/Profile flyout menu"</p>
-                                </span>
+                                }
+                                    .into_view(cx)
                             }
-                                .into_view(cx)
-                        }
-                        Some(ValidationResult::Unauthorized(e)) => {
-                            log!("Validation: {}", e);
-                            view! { cx,
-                                <A href=format!("/auth?redirect_to={}", redirect_path())>
+                            Some(ValidationResult::Ok(_)) => {
+                                view! { cx,
+                                    <A href="/create">
+                                        <Icon
+                                            icon=OcIcon::OcPencilLg
+                                            class="dark:stroke-white w-10 h-10 py-1 my-auto stroke-0 cursor-pointer"
+                                        />
+                                    </A>
+                                    <button
+                                        on:click=move |_| panel.set(!panel())
+                                        class="w-8 h-8 my-auto rounded-full bg-pink-500"
+                                    ></button>
+                                }
+                                    .into_view(cx)
+                            }
+                            Some(ValidationResult::Unauthorized(e)) => {
+                                log!("Validation: {}", e);
+                                view! { cx,
+                                    <A href=format!("/auth?redirect_to={}", redirect_path())>
+                                        <Icon
+                                            icon=OcIcon::OcPersonAddLg
+                                            class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0 cursor-pointer"
+                                        />
+                                    </A>
+                                }
+                                    .into_view(cx)
+                            }
+                            Some(ValidationResult::Error(e)) => {
+                                error!("ValidationResult::Error@app::BottomBar: {}", e);
+                                view! { cx,
                                     <Icon
-                                        icon=OcIcon::OcPersonAddLg
-                                        class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0 cursor-pointer"
+                                        icon=OcIcon::OcCircleSlashLg
+                                        class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0"
                                     />
-                                </A>
+                                }
+                                    .into_view(cx)
                             }
-                                .into_view(cx)
                         }
-                        Some(ValidationResult::Error(e)) => {
-                            error!("ValidationResult::Error@app::BottomBar: {}", e);
-                            view! { cx,
-                                <Icon
-                                    icon=OcIcon::OcCircleSlashLg
-                                    class="dark:stroke-white py-1 w-10 h-10 my-auto stroke-0"
-                                />
-                            }
-                                .into_view(cx)
-                        }
-                    }
-                }}
-            </Transition>
+                    }}
+                </Transition>
+            </div>
         </div>
     }
 }
@@ -410,7 +454,7 @@ async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
     .await?;
 
     match account::validate(pool.app_data().as_ref(), session).await {
-        UserValidateResult::Ok(apub_id) => Ok(ValidationResult::Ok(apub_id)),
+        UserValidateResult::Ok(name) => Ok(ValidationResult::Ok(name)),
         UserValidateResult::Unauthorized(v) => Ok(ValidationResult::Unauthorized(v)),
         UserValidateResult::InternalServerError(v) => {
             resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);
