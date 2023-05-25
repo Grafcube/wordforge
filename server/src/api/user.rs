@@ -2,14 +2,17 @@ use activitypub_federation::{
     config::Data,
     fetch::webfinger::{extract_webfinger_name, webfinger_resolve_actor},
     protocol::context::WithContext,
-    traits::Object,
+    traits::{Collection, Object},
 };
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
-    web, HttpResponse,
+    get, web, HttpResponse,
 };
 use serde_json::json;
-use wordforge_api::{objects::person::User, DbHandle};
+use wordforge_api::{
+    objects::{novel_list::NovelList, person::User},
+    DbHandle,
+};
 
 pub async fn get_user(
     path: web::Path<String>,
@@ -37,5 +40,21 @@ pub async fn get_user(
     .map_err(ErrorInternalServerError)?;
 
     let res = WithContext::new_default(user);
+    Ok(HttpResponse::Ok().json(res))
+}
+
+#[get("/user/{name}/outbox")]
+async fn user_outbox(
+    name: web::Path<String>,
+    data: Data<DbHandle>,
+) -> actix_web::Result<HttpResponse> {
+    let owner = User::read_from_username(&name, &data)
+        .await
+        .map_err(ErrorInternalServerError)?
+        .ok_or(ErrorNotFound(json!({"error": "User not found"})))?;
+    let chapters = NovelList::read_local(&owner, &data)
+        .await
+        .map_err(ErrorInternalServerError)?;
+    let res = WithContext::new_default(chapters);
     Ok(HttpResponse::Ok().json(res))
 }

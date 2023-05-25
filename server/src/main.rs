@@ -81,6 +81,7 @@ async fn main() -> io::Result<()> {
             .route("/novel/{uuid}", api::novels())
             .service(api::novel::novel_inbox)
             .service(api::novel::novel_outbox)
+            .service(api::user::user_outbox)
             .service(api::scope())
             .service(webfinger)
             .route("/server/{tail:.*}", handle_server_fns())
