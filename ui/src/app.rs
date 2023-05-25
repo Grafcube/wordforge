@@ -1,4 +1,5 @@
 use crate::{
+    components::panel::*,
     fallback::*,
     routes::{auth::*, novel::*},
 };
@@ -153,6 +154,8 @@ fn Sidebar(
             .read(cx)
             .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     });
+    let (apub_id, set_apub_id) = create_signal::<Option<String>>(cx, None);
+    let panel = create_rw_signal(cx, false);
     let logout = create_action(cx, move |_: &()| logout(cx));
     let logout_res = logout.value();
 
@@ -263,18 +266,41 @@ fn Sidebar(
                 </Transition>
             </div>
             <Transition fallback=|| ()>
-                <Show when=move || matches!(valid(), Some(ValidationResult::Ok(_))) fallback=|_| ()>
-                    <div class="flex flex-row gap-2 w-full p-2">
-                        <span class="flex-none w-8 h-8 my-auto rounded-full cursor-pointer bg-pink-500">
-                            <p class="hidden">"TODO: Account/Profile flyout menu"</p>
+                <Show
+                    when=move || {
+                        if let Some(ValidationResult::Ok(apub_id)) = valid() {
+                            set_apub_id(Some(apub_id));
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    fallback=|_| ()
+                >
+                    <button
+                        on:click=move |_| panel.set(!panel())
+                        class="flex flex-row gap-2 w-full mt-2 p-2 rounded-md hover:dark:bg-gray-800"
+                    >
+                        <span class="flex-none w-10 h-10 my-auto rounded-full bg-pink-500"></span>
+                        <span class="my-auto w-full rounded-md text-left whitespace-nowrap overflow-hidden overflow-ellipsis">
+                            {apub_id()}
                         </span>
-                        <button
-                            class="my-auto w-full p-2 rounded-md hover:dark:bg-gray-800"
-                            on:click=move |_| logout.dispatch(())
+                        <Panel
+                            when=panel
+                            class="absolute flex flex-col z-50 left-2 bottom-20 mx-0 p-2 w-[94%] dark:bg-gray-900 rounded-md"
                         >
-                            "Logout"
-                        </button>
-                    </div>
+                            <button
+                                class="flex flex-row gap-2 my-auto text-left w-full p-2 rounded-md hover:dark:bg-gray-800"
+                                on:click=move |_| logout.dispatch(())
+                            >
+                                <Icon
+                                    icon=OcIcon::OcSignOutLg
+                                    class="dark:stroke-white w-8 h-8 my-auto stroke-0 pointer-events-none"
+                                />
+                                <span class="my-auto">"Logout"</span>
+                            </button>
+                        </Panel>
+                    </button>
                 </Show>
             </Transition>
         </div>
