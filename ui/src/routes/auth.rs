@@ -17,7 +17,7 @@ pub(crate) fn Auth(cx: Scope) -> impl IntoView {
                     p.redirect_to
                         .is_empty()
                         .then(|| "/".to_string())
-                        .unwrap_or_else(|| p.redirect_to)
+                        .unwrap_or(p.redirect_to)
                 })
             })
             .unwrap_or_else(|e| {

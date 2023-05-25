@@ -407,7 +407,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                      </span>
                                      <Show
                                          when={
-                                             let sensitive = novel.sensitive.clone();
+                                             let sensitive = novel.sensitive;
                                              move || sensitive
                                          }
                                          fallback=|_| ()
@@ -529,6 +529,7 @@ pub async fn get_usernames(
 ) -> Result<Vec<(String, Result<String, String>)>, ServerFnError> {
     use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
     use futures::future;
+    use itertools::Itertools;
     use leptos_actix::extract;
     use reqwest::Url;
     use wordforge_api::{objects::person::User, DbHandle};
@@ -568,30 +569,34 @@ pub async fn get_usernames(
         let fetch = |urls: Vec<ObjectId<User>>| async {
             let mut res = vec![];
             for apub_id in urls.into_iter() {
-                let user = apub_id
-                    .dereference(&pool)
-                    .await
-                    .map_err(|e| format!("{apub_id}: {e}"));
-                let (href, name) = match user {
+                let domain = format!(
+                    "{}{}",
+                    apub_id.inner().host_str().expect("apub_id hostname"),
+                    apub_id
+                        .inner()
+                        .port()
+                        .map(|p| format!(":{}", p))
+                        .unwrap_or(String::new())
+                );
+                let (href, name) = match apub_id.dereference(&pool).await {
                     Ok(user) => (
                         format!(
                             "/users/{}{}",
                             user.preferred_username,
-                            format!(
-                                "@{}{}",
-                                apub_id.inner().host_str().expect("apub_id hostname"),
-                                apub_id
-                                    .inner()
-                                    .port()
-                                    .map(|p| format!(":{}", p))
-                                    .unwrap_or(String::new())
-                            )
+                            domain
+                                .eq(pool.domain())
+                                .then_some(String::new())
+                                .unwrap_or(format!("@{domain}"))
                         ),
                         Ok(user.name),
                     ),
                     Err(e) => (
                         apub_id.inner().to_string(),
-                        Err(format!("{}: {}", apub_id.inner(), e)),
+                        Err(format!(
+                            "{}: {}",
+                            apub_id.inner(),
+                            e.chain().map(|e| e.to_string()).join("\n")
+                        )),
                     ),
                 };
                 res.push((href, name));
@@ -599,7 +604,7 @@ pub async fn get_usernames(
             res
         };
         fetchers.push(fetch(
-            urls.into_iter()
+            urls.iter()
                 .map(|u| ObjectId::<User>::parse(u.as_str()).unwrap())
                 .collect(),
         ));
