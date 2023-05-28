@@ -363,8 +363,12 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                     }
                                     (apub_id, Ok(v)) => {
                                         view! { cx,
-                                            <a href=apub_id class="w-fit dark:bg-gray-950 rounded-full px-2 py-1">
-                                                {v}
+                                            <a
+                                                href=apub_id
+                                                class="flex flex-row gap-1 w-fit dark:bg-gray-950 rounded-full px-2 py-1"
+                                            >
+                                                <span class="w-6 h-6 m-auto rounded-full bg-pink-500"></span>
+                                                <span class="my-auto">{v}</span>
                                             </a>
                                         }
                                     }
