@@ -1,4 +1,5 @@
 use crate::{
+    app::ValidationResult,
     components::{basicinput::*, errorview::*, listbox::*, toggle::*},
     fallback::*,
     path::NovelViewParams,
@@ -336,7 +337,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
     };
 
     let novel = create_resource(cx, uuid, move |id| get_novel(cx, id));
-    let (authors, set_authors) = create_signal::<Vec<String>>(cx, Vec::new());
+    let (authors, set_authors) = create_signal::<Vec<(String, String)>>(cx, Vec::new());
     let usernames = create_resource(cx, authors, move |authors| get_usernames(cx, authors));
 
     let author_view = move || {
@@ -353,22 +354,26 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                             {users
                                 .into_iter()
                                 .map(|res| match res {
-                                    (apub_id, Err(e)) => {
+                                    (apub_id, role, Err(e)) => {
                                         log!("UNKNOWN: {e}");
                                         view! { cx,
-                                            <a href=apub_id class="w-fit dark:bg-gray-950 rounded-full px-2 py-1">
-                                                "<UNKNOWN>"
+                                            <a href=apub_id class="flex flex-col gap-0 dark:bg-gray-950 rounded-full px-4">
+                                                <span class="my-auto text-sm md:text-xs dark:text-gray-500">{role}</span>
+                                                <span class="my-auto dark:text-gray-400">"UNKNOWN"</span>
                                             </a>
                                         }
                                     }
-                                    (apub_id, Ok(v)) => {
+                                    (apub_id, role, Ok(v)) => {
                                         view! { cx,
-                                            <a
-                                                href=apub_id
-                                                class="flex flex-row gap-1 w-fit dark:bg-gray-950 rounded-full px-2 py-1"
-                                            >
-                                                <span class="w-6 h-6 m-auto rounded-full bg-pink-500"></span>
-                                                <span class="my-auto">{v}</span>
+                                            <a href=apub_id class="flex flex-row gap-1 dark:bg-gray-950 rounded-full pr-4">
+                                                <span class="w-6 h-6 ml-2 m-auto rounded-full bg-pink-500"></span>
+                                                <div class="flex flex-col gap-0">
+                                                    {role
+                                                        .ne("None")
+                                                        .then_some(
+                                                            view! { cx, <span class="my-auto text-sm md:text-xs dark:text-gray-500">{role}</span> },
+                                                        )} <span class="my-auto">{v}</span>
+                                                </div>
                                             </a>
                                         }
                                     }
@@ -435,9 +440,9 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                      {
                                          let author_list = novel
                                              .authors
-                                             .iter()
-                                             .map(|a| a.apub_id.clone())
-                                             .collect::<Vec<String>>();
+                                             .into_iter()
+                                             .map(|a| (a.apub_id, a.role))
+                                             .collect::<Vec<_>>();
                                          set_authors(author_list);
                                          author_view
                                      }
@@ -529,8 +534,8 @@ pub async fn get_novel(
 #[server(GetUsername, "/server")]
 pub async fn get_usernames(
     cx: Scope,
-    authors: Vec<String>,
-) -> Result<Vec<(String, Result<String, String>)>, ServerFnError> {
+    authors: Vec<(String, String)>,
+) -> Result<Vec<(String, String, Result<String, String>)>, ServerFnError> {
     use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
     use futures::future;
     use itertools::Itertools;
@@ -541,28 +546,29 @@ pub async fn get_usernames(
     let pool = extract(cx, |pool: Data<DbHandle>| async move { pool }).await?;
 
     let mut urls = vec![];
-    for apub_id in authors.iter() {
-        urls.push(
-            Url::parse(apub_id)
+    for (apub_id, role) in authors.into_iter() {
+        urls.push((
+            Url::parse(&apub_id)
                 .map_err(|e| ServerFnError::ServerError(format!("{apub_id}: {e}")))?,
-        );
+            role,
+        ));
     }
 
-    let authors = urls.into_iter().fold(vec![], |mut acc, url| {
+    let authors = urls.into_iter().fold(vec![], |mut acc, (url, role)| {
         if acc.is_empty() {
-            acc.push(vec![url])
+            acc.push(vec![(url, role)])
         } else {
             let inserted = 'inserted: {
                 for urls in acc.iter_mut() {
-                    if urls[0].host_str() == url.host_str() {
-                        urls.push(url.clone());
+                    if urls[0].0.host_str() == url.host_str() {
+                        urls.push((url.clone(), role.clone()));
                         break 'inserted true;
                     }
                 }
                 false
             };
             if !inserted {
-                acc.push(vec![url])
+                acc.push(vec![(url, role)])
             };
         };
         acc
@@ -570,9 +576,9 @@ pub async fn get_usernames(
 
     let mut fetchers = vec![];
     for urls in authors.iter() {
-        let fetch = |urls: Vec<ObjectId<User>>| async {
+        let fetch = |urls: Vec<(ObjectId<User>, String)>| async {
             let mut res = vec![];
-            for apub_id in urls.into_iter() {
+            for (apub_id, role) in urls.into_iter() {
                 let domain = format!(
                     "{}{}",
                     apub_id.inner().host_str().expect("apub_id hostname"),
@@ -603,13 +609,13 @@ pub async fn get_usernames(
                         )),
                     ),
                 };
-                res.push((href, name));
+                res.push((href, role, name));
             }
             res
         };
         fetchers.push(fetch(
             urls.iter()
-                .map(|u| ObjectId::<User>::parse(u.as_str()).unwrap())
+                .map(|(u, r)| (ObjectId::<User>::parse(u.as_str()).unwrap(), r.clone()))
                 .collect(),
         ));
     }

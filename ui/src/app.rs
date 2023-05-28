@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ValidationResult {
-    Ok(String),
+    Ok((String, String)),
     Unauthorized(String),
     Error(String),
 }
@@ -271,7 +271,7 @@ fn Sidebar(
             <Transition fallback=|| ()>
                 <Show
                     when=move || {
-                        if let Some(ValidationResult::Ok(name)) = valid() {
+                        if let Some(ValidationResult::Ok((_, name))) = valid() {
                             set_name(Some(name));
                             true
                         } else {
@@ -449,7 +449,7 @@ async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
     .await?;
 
     match account::validate(pool.app_data().as_ref(), session).await {
-        UserValidateResult::Ok(name) => Ok(ValidationResult::Ok(name)),
+        UserValidateResult::Ok((apub_id, name)) => Ok(ValidationResult::Ok((apub_id, name))),
         UserValidateResult::Unauthorized(v) => Ok(ValidationResult::Unauthorized(v)),
         UserValidateResult::InternalServerError(v) => {
             resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);

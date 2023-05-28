@@ -14,7 +14,7 @@ use sqlx::{query, PgPool};
 use validator::Validate;
 
 pub enum UserValidateResult {
-    Ok(String),
+    Ok((String, String)),
     Unauthorized(String),
     NotFound(String),
     InternalServerError(String),
@@ -27,11 +27,11 @@ pub async fn validate(conn: &PgPool, session: Session) -> UserValidateResult {
         Ok(None) => return UserValidateResult::Unauthorized("Not signed in".to_string()),
     };
     session.renew();
-    let name = match query!("SELECT name FROM users WHERE apub_id=$1", id)
+    let name = match query!("SELECT apub_id, name FROM users WHERE apub_id=$1", id)
         .fetch_optional(conn)
         .await
     {
-        Ok(Some(v)) => v.name,
+        Ok(Some(v)) => (v.apub_id, v.name),
         Ok(None) => return UserValidateResult::Unauthorized("Expired session".to_string()),
         Err(e) => return UserValidateResult::NotFound(e.to_string()),
     };
