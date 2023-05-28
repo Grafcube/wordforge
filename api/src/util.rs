@@ -11,5 +11,4 @@ lazy_static! {
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub scheme: String,
-    pub client: Client,
 }

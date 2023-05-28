@@ -44,10 +44,6 @@ async fn main() -> io::Result<()> {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let state = AppState {
         scheme: env::var("SCHEME").expect("SCHEME is required"),
-        client: Client::builder()
-            .user_agent(format!("Wordforge/0.1.0 {}", addr))
-            .build()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     };
     let config = new_database(addr.to_string(), db_url)
         .await
