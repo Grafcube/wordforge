@@ -1,4 +1,5 @@
 use crate::{
+    activities::accept::Accept,
     objects::{novel::DbNovel, person::User},
     DbHandle,
 };
@@ -8,7 +9,7 @@ use activitypub_federation::{
     fetch::object_id::ObjectId,
     kinds::{activity::AddType, object::ArticleType},
     protocol::context::WithContext,
-    traits::{ActivityHandler, Object},
+    traits::{ActivityHandler, Actor, Object},
 };
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -18,11 +19,10 @@ use sqlx::query;
 use url::Url;
 
 #[derive(Serialize, Deserialize)]
-struct NewChapter {
+pub struct NewChapter {
     title: String,
     summary: String,
     sensitive: bool,
-    content: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -30,10 +30,9 @@ struct NewChapter {
 pub struct NewArticle {
     #[serde(rename = "type")]
     kind: ArticleType,
-    name: String,
-    summary: String,
-    sensitive: bool,
-    content: String,
+    pub name: String,
+    pub summary: String,
+    pub sensitive: bool,
 }
 
 #[async_trait]
@@ -63,7 +62,6 @@ impl Object for NewChapter {
             name: self.title,
             summary: self.summary,
             sensitive: self.sensitive,
-            content: self.content,
         })
     }
 
@@ -75,7 +73,6 @@ impl Object for NewChapter {
             title: json.name,
             summary: json.summary,
             sensitive: json.sensitive,
-            content: json.content,
         })
     }
 }
@@ -92,7 +89,7 @@ pub struct Add {
 
 impl Add {
     pub async fn send(
-        chapter: NewArticle,
+        chapter: NewChapter,
         actor: Url,
         inbox: Url,
         data: &Data<DbHandle>,
@@ -104,9 +101,15 @@ impl Add {
             .domain()
             .parse::<Url>()?
             .join(&format!("activities/{}", Local::now().timestamp_nanos()))?;
+        let article = NewArticle {
+            kind: Default::default(),
+            name: chapter.title,
+            summary: chapter.summary,
+            sensitive: chapter.sensitive,
+        };
         let add = Self {
             actor: actor.into(),
-            object: WithContext::new_default(chapter),
+            object: WithContext::new_default(article),
             target: inbox.to_string().parse()?,
             kind: Default::default(),
             id: id.clone(),
@@ -135,9 +138,14 @@ impl ActivityHandler for Add {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> anyhow::Result<()> {
-        let chapter = self.object.inner();
         let user = self.actor.dereference(data).await?;
+        let chapter = self.object.inner();
         let novel = self.target.dereference_local(data).await?;
+
+        let id = data
+            .domain()
+            .parse::<Url>()?
+            .join(&format!("activities/{}", Local::now().timestamp_nanos()))?;
 
         let authors = query!(
             "SELECT author FROM author_roles WHERE lower(id)=$1",
@@ -154,37 +162,9 @@ impl ActivityHandler for Add {
             return Err(anyhow!("No write permission: {}", novel.apub_id));
         }
 
-        let sequence = query!(
-            r#"SELECT max(sequence) AS sequence
-               FROM chapters
-               WHERE lower(audience)=$1"#,
-            novel.apub_id.as_str()
-        )
-        .fetch_one(data.app_data().as_ref())
-        .await?
-        .sequence
-        .unwrap_or(0);
+        Accept::send(&novel, chapter, id, user.inbox(), data).await?;
 
-        let apub_id = novel
-            .apub_id
-            .parse::<Url>()?
-            .join(&sequence.to_string())?
-            .to_string();
-
-        query!(
-            r#"INSERT INTO chapters
-               (apub_id, audience, title, summary, sensitive, content, sequence)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
-            apub_id,
-            novel.apub_id.to_string(),
-            chapter.name,
-            chapter.summary,
-            chapter.sensitive,
-            chapter.content,
-            sequence
-        )
-        .execute(data.app_data().as_ref())
-        .await?;
+        // TODO: Send Announce if accepted (depends on following feature)
 
         Ok(())
     }

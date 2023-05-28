@@ -387,7 +387,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
         })
     };
 
-    let view = move || {
+    let metadata = move || {
         novel.read(cx).map(|v| match v {
             Ok(Err(e)) => {
                 log!("novel view: {e}");
@@ -469,6 +469,14 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
         })
     };
 
+    let validate =
+        use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx).unwrap();
+    let valid = create_memo(cx, move |_| {
+        validate
+            .read(cx)
+            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+    });
+
     view! { cx,
         <Title text="Novel"/>
         <div class="mx-auto max-w-2xl px-4">
@@ -480,7 +488,34 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                     />
                 }
                     .into_view(cx)
-            }>{view}</Suspense>
+            }>{metadata}</Suspense>
+            <div class="dark:bg-gray-800 w-full rounded-xl px-4 py-2 my-2">
+                <div class="flex flex-row justify-between w-full">
+                    <span class="text-gray-600 dark:text-gray-400 text-lg my-auto p-1">
+                        "Chapters"
+                    </span>
+                    <Suspense fallback=|| ()>
+                        <Show
+                            when=move || {
+                                if let Some(ValidationResult::Ok((apub_id, _))) = valid() {
+                                    authors().into_iter().map(|(a, _)| a).collect::<Vec<_>>().contains(&apub_id)
+                                } else {
+                                    false
+                                }
+                            }
+                            fallback=|_| ()
+                        >
+                            <button class="flex flex-row gap-1 p-1 rounded-md text-gray-500 dark:text-gray-300 hover:dark:bg-gray-900 focus:dark:bg-gray-900">
+                                <Icon
+                                    icon=CgIcon::CgMathPlus
+                                    class="dark:stroke-white w-6 h-6 my-auto stroke-0"
+                                />
+                                <span class="my-auto pr-1">"New chapter"</span>
+                            </button>
+                        </Show>
+                    </Suspense>
+                </div>
+            </div>
         </div>
     }
 }

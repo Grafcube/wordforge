@@ -16,7 +16,7 @@ use serde_json::json;
 use url::Url;
 use uuid::Uuid;
 use wordforge_api::{
-    activities::{self, add::NewArticle},
+    activities::{self, add::NewChapter},
     api::novel::{self, create_novel, CreateNovelResult, GetNovelResult, NewNovel},
     objects::{
         chapter::ChapterList,
@@ -60,7 +60,7 @@ pub async fn get_novel(
 #[post("/novel/{novel}/create")]
 async fn add_chapter(
     path: web::Path<String>,
-    info: web::Json<NewArticle>,
+    info: web::Json<NewChapter>,
     session: Session,
     data: Data<DbHandle>,
 ) -> actix_web::Result<HttpResponse> {
