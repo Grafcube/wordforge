@@ -21,6 +21,7 @@ actix-web = { version = "4.3.0", features = [
   "secure-cookies",
   "actix-tls",
 ], optional = true }
+console_error_panic_hook = "0.1.7"
 futures = { version = "0.3.28", optional = true }
 isolang = { version = "2.2.0", features = ["serde"] }
 itertools = { version = "0.10.5", optional = true }
