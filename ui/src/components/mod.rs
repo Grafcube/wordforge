@@ -3,3 +3,4 @@ pub mod errorview;
 pub mod listbox;
 pub mod toggle;
 pub mod panel;
+pub mod chapter;

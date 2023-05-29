@@ -1,6 +1,6 @@
 use crate::{
     app::ValidationResult,
-    components::{basicinput::*, errorview::*, listbox::*, toggle::*},
+    components::{basicinput::*, chapter::NewChapter, errorview::*, listbox::*, toggle::*},
     fallback::*,
     path::NovelViewParams,
 };
@@ -10,6 +10,7 @@ use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::UnwrapThrowExt;
 
 #[component]
 pub fn CreateBook(cx: Scope) -> impl IntoView {
@@ -477,6 +478,8 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
             .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
     });
 
+    let chapter_button = create_node_ref::<Dialog>(cx);
+
     view! { cx,
         <Title text="Novel"/>
         <div class="mx-auto max-w-2xl px-4">
@@ -505,13 +508,21 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                             }
                             fallback=|_| ()
                         >
-                            <button class="flex flex-row gap-1 p-1 rounded-md text-gray-500 dark:text-gray-300 hover:dark:bg-gray-900 focus:dark:bg-gray-900">
+                            <button
+                                class="flex flex-row gap-1 p-1 rounded-md text-gray-500 dark:text-gray-300"
+                                on:click=move |_| {
+                                    if let Some(v) = chapter_button() {
+                                        v.show_modal().unwrap_throw()
+                                    }
+                                }
+                            >
                                 <Icon
                                     icon=CgIcon::CgMathPlus
                                     class="dark:stroke-white w-6 h-6 my-auto stroke-0"
                                 />
                                 <span class="my-auto pr-1">"New chapter"</span>
                             </button>
+                            <NewChapter node_ref=chapter_button/>
                         </Show>
                     </Suspense>
                 </div>
