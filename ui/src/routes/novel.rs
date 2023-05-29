@@ -199,7 +199,7 @@ pub fn CreateBook(cx: Scope) -> impl IntoView {
                         ></textarea>
                         <FloatingLabel target="tags">"Tags"</FloatingLabel>
                     </div>
-                    <input type="hidden" name="cw" value=move || sensitive.get().to_string()/>
+                    <input type="hidden" name="cw" value=move || sensitive().to_string()/>
                     <div class="flex justify-start">
                         <Toggle value=sensitive node_ref=cw>
                             "Content warning"

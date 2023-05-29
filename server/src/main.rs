@@ -13,7 +13,6 @@ use actix_web::{
 };
 use leptos::view;
 use leptos_actix::{generate_route_list, handle_server_fns, LeptosRoutes};
-use reqwest::Client;
 use std::{env, io};
 use wordforge_api::util::AppState;
 use wordforge_ui::{app::*, register_server_functions};
