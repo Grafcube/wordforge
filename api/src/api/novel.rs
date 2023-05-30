@@ -88,8 +88,8 @@ pub async fn create_novel(
         tags.as_slice(),
         lang,
         info.sensitive,
-        format!("{}://{}/inbox", scheme.clone(), url),
-        format!("{}://{}/outbox", scheme.clone(), url),
+        format!("{}/inbox", url),
+        format!("{}/outbox", url),
         keypair.public_key,
         keypair.private_key
     )
