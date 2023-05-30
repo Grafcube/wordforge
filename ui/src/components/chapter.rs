@@ -10,6 +10,7 @@ use wasm_bindgen::UnwrapThrowExt;
 #[component]
 pub fn NewChapter(
     cx: Scope,
+    novel: String,
     #[allow(unused_variables)] node_ref: NodeRef<Dialog>,
 ) -> impl IntoView {
     let create = create_server_action::<CreateChapter>(cx);
@@ -17,13 +18,12 @@ pub fn NewChapter(
     let (errormsg, set_errormsg) = create_signal::<Option<String>>(cx, None);
     let err = move || {
         response().map(|v| match v {
-            Ok(Ok(_)) => {
+            Ok(_) => {
                 if let Some(v) = node_ref() {
                     v.close();
                 }
                 set_errormsg(None);
             }
-            Ok(Err(v)) => set_errormsg(Some(v)),
             Err(e) => set_errormsg(Some(e.to_string())),
         })
     };
@@ -47,14 +47,17 @@ pub fn NewChapter(
             .unwrap();
     };
 
+    let reset_form = move |_: Event| {
+        form().unwrap_throw().reset();
+        set_errormsg(None)
+    };
+
     view! { cx,
         <dialog
-            class="rounded-xl w-md max-w-md dark:bg-gray-900 dark:text-white"
+            class="rounded-xl w-md max-w-md backdrop:bg-gray-950/60 dark:bg-gray-900 dark:text-white"
             node_ref=node_ref
-            on:cancel=move |_: Event| {
-                form().unwrap_throw().reset();
-                set_errormsg(None)
-            }
+            on:close=reset_form
+            on:cancel=reset_form
         >
             <ActionForm
                 class="flex flex-col justify-center text-center place-content-center items-center space-y-4 p-4 w-full"
@@ -96,6 +99,7 @@ pub fn NewChapter(
                         "Content warning"
                     </Toggle>
                 </div>
+                <input type="hidden" name="novel" value=novel/>
                 <div class="relative">
                     <input type="submit" class="button-1" value="Create"/>
                 </div>
@@ -115,9 +119,44 @@ pub fn NewChapter(
 #[server(CreateChapter, "/server")]
 pub async fn create(
     cx: Scope,
+    novel: String,
     title: String,
     summary: String,
     sensitive: bool,
-) -> Result<Result<String, String>, ServerFnError> {
-    Err(ServerFnError::ServerError("To be implemented".to_string()))
+) -> Result<(), ServerFnError> {
+    use activitypub_federation::config::Data;
+    use actix_session::Session;
+    use actix_web::web;
+    use leptos_actix::extract;
+    use wordforge_api::{
+        activities::add::NewChapter,
+        api::chapter::{new_chapter, ChapterCreationError},
+        util::AppState,
+        DbHandle,
+    };
+
+    let (session, scheme, data) = extract(
+        cx,
+        |session: Session, state: web::Data<AppState>, data: Data<DbHandle>| async move {
+            (session, state.scheme.clone(), data)
+        },
+    )
+    .await?;
+
+    let chapter = NewChapter {
+        title,
+        summary,
+        sensitive,
+    };
+
+    match new_chapter(novel, chapter, session, &data, scheme).await {
+        Ok(_) => Ok(()),
+        Err(ChapterCreationError::InternalError(e)) => Err(ServerFnError::ServerError(e)),
+        Err(ChapterCreationError::Unauthorized) => {
+            Err(ServerFnError::ServerError("Not signed in".to_string()))
+        }
+        Err(ChapterCreationError::NotFound) => {
+            Err(ServerFnError::ServerError("Novel not found".to_string()))
+        }
+    }
 }

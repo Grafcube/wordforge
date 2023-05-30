@@ -4527,6 +4527,7 @@ dependencies = [
  "sqlx",
  "strum",
  "tracing",
+ "url",
  "wasm-bindgen",
  "web-sys",
  "wordforge-api",

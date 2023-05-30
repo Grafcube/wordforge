@@ -522,7 +522,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                 />
                                 <span class="my-auto pr-1">"New chapter"</span>
                             </button>
-                            <NewChapter node_ref=chapter_button/>
+                            <NewChapter novel=uuid() node_ref=chapter_button/>
                         </Show>
                     </Suspense>
                 </div>

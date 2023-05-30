@@ -62,6 +62,7 @@ async fn add_chapter(
     path: web::Path<String>,
     info: web::Json<NewChapter>,
     session: Session,
+    state: web::Data<AppState>,
     data: Data<DbHandle>,
 ) -> actix_web::Result<HttpResponse> {
     let apub_id: Url = session
@@ -75,9 +76,15 @@ async fn add_chapter(
         .await
         .map_err(|_| ErrorNotFound("Novel not found"))?;
     let novel_id = novel_id.inbox();
-    let activity_id = activities::add::Add::send(info.into_inner(), apub_id, novel_id, &data)
-        .await
-        .map_err(ErrorInternalServerError)?;
+    let activity_id = activities::add::Add::send(
+        info.into_inner(),
+        apub_id,
+        novel_id,
+        state.scheme.clone(),
+        &data,
+    )
+    .await
+    .map_err(ErrorInternalServerError)?;
 
     // TODO: Response with Chapter apub_id
     Ok(HttpResponse::Ok().body(activity_id.to_string()))

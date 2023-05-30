@@ -1,5 +1,4 @@
 use crate::{
-    activities::accept::Accept,
     objects::{novel::DbNovel, person::User},
     DbHandle,
 };
@@ -9,20 +8,21 @@ use activitypub_federation::{
     fetch::object_id::ObjectId,
     kinds::{activity::AddType, object::ArticleType},
     protocol::context::WithContext,
-    traits::{ActivityHandler, Actor, Object},
+    traits::{ActivityHandler, Object},
 };
 use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::Local;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::query;
 use url::Url;
 
 #[derive(Serialize, Deserialize)]
 pub struct NewChapter {
-    title: String,
-    summary: String,
-    sensitive: bool,
+    pub title: String,
+    pub summary: String,
+    pub sensitive: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -30,9 +30,9 @@ pub struct NewChapter {
 pub struct NewArticle {
     #[serde(rename = "type")]
     kind: ArticleType,
-    pub name: String,
-    pub summary: String,
-    pub sensitive: bool,
+    name: String,
+    summary: String,
+    sensitive: bool,
 }
 
 #[async_trait]
@@ -92,13 +92,13 @@ impl Add {
         chapter: NewChapter,
         actor: Url,
         inbox: Url,
+        scheme: String,
         data: &Data<DbHandle>,
     ) -> anyhow::Result<Url> {
         let user = User::read_from_id(actor.clone(), data)
             .await?
             .ok_or_else(|| anyhow!("Local user not found"))?;
-        let id = data
-            .domain()
+        let id = format!("{}://{}", scheme, data.domain())
             .parse::<Url>()?
             .join(&format!("activities/{}", Local::now().timestamp_nanos()))?;
         let article = NewArticle {
@@ -133,38 +133,60 @@ impl ActivityHandler for Add {
         self.actor.inner()
     }
 
-    async fn verify(&self, _data: &Data<Self::DataType>) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    async fn receive(self, data: &Data<Self::DataType>) -> anyhow::Result<()> {
+    async fn verify(&self, data: &Data<Self::DataType>) -> anyhow::Result<()> {
         let user = self.actor.dereference(data).await?;
-        let chapter = self.object.inner();
         let novel = self.target.dereference_local(data).await?;
 
-        let id = data
-            .domain()
-            .parse::<Url>()?
-            .join(&format!("activities/{}", Local::now().timestamp_nanos()))?;
-
-        let authors = query!(
+        query!(
             "SELECT author FROM author_roles WHERE lower(id)=$1",
             novel.apub_id.to_string().to_lowercase()
         )
         .fetch_all(data.app_data().as_ref())
         .await
-        .map_err(|_| anyhow!("Novel not found"))?
+        .map_err(|e| anyhow!("{e}"))?
         .into_iter()
         .map(|row| row.author)
-        .collect::<Vec<_>>();
+        .contains(&user.apub_id)
+        .then_some(())
+        .ok_or(anyhow!("No write permission"))
+    }
 
-        if !authors.contains(&user.apub_id) {
-            return Err(anyhow!("No write permission: {}", novel.apub_id));
-        }
+    async fn receive(self, data: &Data<Self::DataType>) -> anyhow::Result<()> {
+        let chapter = self.object.inner();
+        let novel = self.target.dereference_local(data).await?;
 
-        Accept::send(&novel, chapter, id, user.inbox(), data).await?;
+        let sequence = query!(
+            r#"SELECT max(sequence) AS sequence
+               FROM chapters
+               WHERE lower(audience)=$1"#,
+            novel.apub_id.as_str()
+        )
+        .fetch_one(data.app_data().as_ref())
+        .await?
+        .sequence
+        .unwrap_or(0);
 
-        // TODO: Send Announce if accepted (depends on following feature)
+        let apub_id = novel
+            .apub_id
+            .parse::<Url>()?
+            .join(&sequence.to_string())?
+            .to_string();
+
+        query!(
+            r#"INSERT INTO chapters
+               (apub_id, audience, title, summary, sensitive, sequence)
+               VALUES ($1, $2, $3, $4, $5, $6)"#,
+            apub_id,
+            novel.apub_id.to_string(),
+            chapter.name,
+            chapter.summary,
+            chapter.sensitive,
+            sequence
+        )
+        .execute(data.app_data().as_ref())
+        .await?;
+
+        // TODO: Send Announce if accepted. Requires follows to be implemented.
 
         Ok(())
     }

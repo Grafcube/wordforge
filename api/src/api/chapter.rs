@@ -8,7 +8,6 @@ use activitypub_federation::{
 };
 use actix_session::Session;
 use url::{ParseError, Url};
-use uuid::Uuid;
 
 pub enum ChapterCreationError {
     InternalError(String),
@@ -16,11 +15,12 @@ pub enum ChapterCreationError {
     Unauthorized,
 }
 
-async fn new_chapter(
-    novel: Uuid,
+pub async fn new_chapter(
+    novel: String,
     chapter: NewChapter,
     session: Session,
     data: &Data<DbHandle>,
+    scheme: String,
 ) -> Result<String, ChapterCreationError> {
     let apub_id: Url = session
         .get::<String>("id")
@@ -30,7 +30,6 @@ async fn new_chapter(
         .map_err(|e: ParseError| ChapterCreationError::InternalError(e.to_string()))?;
     session.renew();
 
-    let novel = novel.to_string();
     let path = if novel.contains('@') {
         novel
     } else {
@@ -41,7 +40,7 @@ async fn new_chapter(
         .await
         .map_err(|_| ChapterCreationError::NotFound)?;
     let novel_id = novel_id.inbox();
-    let activity_id = Add::send(chapter, apub_id, novel_id, data)
+    let activity_id = Add::send(chapter, apub_id, novel_id, scheme, data)
         .await
         .map_err(|e| ChapterCreationError::InternalError(e.to_string()))?;
 
