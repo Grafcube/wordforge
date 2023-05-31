@@ -1,4 +1,5 @@
 use crate::{
+    api::chapter::create_chapter,
     objects::{novel::DbNovel, person::User},
     DbHandle,
 };
@@ -25,7 +26,7 @@ pub struct NewChapter {
     pub sensitive: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct NewArticle {
     #[serde(rename = "type")]
@@ -77,7 +78,7 @@ impl Object for NewChapter {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Add {
     actor: ObjectId<User>,
     object: WithContext<NewArticle>,
@@ -152,39 +153,13 @@ impl ActivityHandler for Add {
     }
 
     async fn receive(self, data: &Data<Self::DataType>) -> anyhow::Result<()> {
-        let chapter = self.object.inner();
-        let novel = self.target.dereference_local(data).await?;
+        let chapter = NewChapter {
+            title: self.object.inner().name.clone(),
+            summary: self.object.inner().summary.clone(),
+            sensitive: self.object.inner().sensitive,
+        };
 
-        let sequence = query!(
-            r#"SELECT max(sequence) AS sequence
-               FROM chapters
-               WHERE lower(audience)=$1"#,
-            novel.apub_id.as_str()
-        )
-        .fetch_one(data.app_data().as_ref())
-        .await?
-        .sequence
-        .unwrap_or(0);
-
-        let apub_id = novel
-            .apub_id
-            .parse::<Url>()?
-            .join(&sequence.to_string())?
-            .to_string();
-
-        query!(
-            r#"INSERT INTO chapters
-               (apub_id, audience, title, summary, sensitive, sequence)
-               VALUES ($1, $2, $3, $4, $5, $6)"#,
-            apub_id,
-            novel.apub_id.to_string(),
-            chapter.name,
-            chapter.summary,
-            chapter.sensitive,
-            sequence
-        )
-        .execute(data.app_data().as_ref())
-        .await?;
+        create_chapter(chapter, &self.target, data).await?;
 
         // TODO: Send Announce if accepted. Requires follows to be implemented.
 
