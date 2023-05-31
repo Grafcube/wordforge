@@ -79,11 +79,7 @@ pub async fn create_chapter(
     .sequence
     .unwrap_or(0);
 
-    let apub_id = novel
-        .apub_id
-        .parse::<Url>()?
-        .join(&sequence.to_string())?
-        .to_string();
+    let apub_id = format!("{}/{}", novel.apub_id, sequence);
 
     query!(
         r#"INSERT INTO chapters
