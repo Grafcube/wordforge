@@ -368,7 +368,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                         view! { cx,
                                             <a href=apub_id class="flex flex-row gap-1 dark:bg-gray-950 rounded-full pr-4">
                                                 <span class="w-6 h-6 ml-2 m-auto rounded-full bg-pink-500"></span>
-                                                <div class="flex flex-col gap-0">
+                                                <div class="flex flex-col gap-0 h-10">
                                                     {role
                                                         .ne("None")
                                                         .then_some(
