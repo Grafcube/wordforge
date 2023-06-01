@@ -1,11 +1,7 @@
-use super::{novel::DbNovel, person::User};
+use super::person::User;
 use crate::DbHandle;
 use activitypub_federation::{
-    config::Data,
-    fetch::object_id::ObjectId,
-    kinds::{actor::GroupType, collection::OrderedCollectionType},
-    protocol::context::WithContext,
-    traits::Collection,
+    config::Data, kinds::collection::OrderedCollectionType, traits::Collection,
 };
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -14,20 +10,11 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NovelLink {
-    #[serde(rename = "type")]
-    kind: GroupType,
-    id: ObjectId<DbNovel>,
-    name: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct NovelList {
     #[serde(rename = "type")]
     kind: OrderedCollectionType,
     total_items: usize,
-    pub ordered_items: Vec<WithContext<NovelLink>>,
+    pub ordered_items: Vec<String>,
 }
 
 #[async_trait]
@@ -41,24 +28,23 @@ impl Collection for NovelList {
         owner: &Self::Owner,
         data: &Data<Self::DataType>,
     ) -> Result<Self::Kind, Self::Error> {
-        let novels: Vec<WithContext<NovelLink>> = query!(
-            r#"SELECT id, title
-               FROM author_roles, novels
-               WHERE lower(author)=$1 AND author_roles.id = novels.apub_id
-               ORDER BY published DESC"#,
+        let novels: Vec<String> = query!(
+            r#"
+            SELECT
+                id
+            FROM
+                author_roles, novels
+            WHERE
+                lower(author)=$1 AND
+                author_roles.id = novels.apub_id
+            ORDER BY published DESC
+        "#,
             owner.apub_id.to_string().to_lowercase()
         )
         .fetch_all(data.app_data().as_ref())
         .await?
         .into_iter()
-        .map(|novel| {
-            let n = NovelLink {
-                kind: Default::default(),
-                id: novel.id.parse().unwrap(),
-                name: novel.title,
-            };
-            WithContext::new_default(n)
-        })
+        .map(|novel| novel.id)
         .collect();
 
         Ok(Self::Kind {
