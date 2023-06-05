@@ -5,12 +5,14 @@ use leptos::{
     *,
 };
 use leptos_router::*;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::UnwrapThrowExt;
 
 #[component]
 pub fn NewChapter(
     cx: Scope,
     novel: String,
+    trigger: WriteSignal<()>,
     #[allow(unused_variables)] node_ref: NodeRef<Dialog>,
 ) -> impl IntoView {
     let create = create_server_action::<CreateChapter>(cx);
@@ -23,6 +25,7 @@ pub fn NewChapter(
                     v.close();
                 }
                 set_errormsg(None);
+                trigger(());
             }
             Err(e) => set_errormsg(Some(e.to_string())),
         })
@@ -116,6 +119,28 @@ pub fn NewChapter(
     }
 }
 
+#[component]
+pub fn ChapterEntry(cx: Scope, chapter: Result<ChapterItem, ServerFnError>) -> impl IntoView {
+    view! { cx,
+        <ErrorBoundary fallback=move |cx, e| {
+            view! { cx,
+                <p class="text-red-600">
+                    <ul>
+                        {move || {
+                            e.get()
+                                .into_iter()
+                                .map(|(_, e)| {
+                                    view! { cx, <li>{e.to_string()}</li> }
+                                })
+                                .collect_view(cx)
+                        }}
+                    </ul>
+                </p>
+            }
+        }>{chapter.map(|c| c.href)}</ErrorBoundary>
+    }
+}
+
 #[server(CreateChapter, "/server")]
 pub async fn create(
     cx: Scope,
@@ -158,5 +183,58 @@ pub async fn create(
         Err(ChapterCreationError::NotFound) => {
             Err(ServerFnError::ServerError("Novel not found".to_string()))
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ChapterItem {
+    pub href: String,
+    pub title: String,
+    pub summary: String,
+    pub sensitive: bool,
+    pub published: String,
+    pub updated: Option<String>,
+}
+
+#[server(GetChapters, "/server")]
+pub async fn get_chapter_list(
+    cx: Scope,
+    novel: String,
+) -> Result<Vec<Result<ChapterItem, ServerFnError>>, ServerFnError> {
+    use activitypub_federation::config::Data;
+    use chrono_humanize::HumanTime;
+    use leptos_actix::extract;
+    use wordforge_api::{
+        api::chapter::{get_chapters, ChapterError},
+        DbHandle,
+    };
+
+    let data = extract(cx, |data: Data<DbHandle>| async move { data }).await?;
+
+    match get_chapters(novel, &data).await {
+        Ok(c) => {
+            let c = c
+                .into_iter()
+                .map(|c| match c {
+                    Ok(c) => Ok(ChapterItem {
+                        href: c.apub_id,
+                        title: c.title,
+                        summary: c.summary,
+                        sensitive: c.sensitive,
+                        published: HumanTime::from(c.published).to_string(),
+                        updated: c.updated.map(|c| HumanTime::from(c).to_string()),
+                    }),
+                    Err(ChapterError::NotFound) => {
+                        Err(ServerFnError::ServerError("Chapter not found".to_string()))
+                    }
+                    Err(ChapterError::InternalError(e)) => Err(ServerFnError::ServerError(e)),
+                })
+                .collect();
+            Ok(c)
+        }
+        Err(ChapterError::NotFound) => {
+            Err(ServerFnError::ServerError("Novel not found".to_string()))
+        }
+        Err(ChapterError::InternalError(e)) => Err(ServerFnError::ServerError(e)),
     }
 }

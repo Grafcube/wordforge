@@ -21,6 +21,7 @@ actix-web = { version = "4.3.0", features = [
   "secure-cookies",
   "actix-tls",
 ], optional = true }
+chrono-humanize = { version = "0.2.2", optional = true }
 console_error_panic_hook = "0.1.7"
 futures = { version = "0.3.28", optional = true }
 isolang = { version = "2.2.0", features = ["serde"] }
@@ -77,6 +78,7 @@ ssr = [
   "dep:activitypub_federation",
   "dep:actix-session",
   "dep:actix-web",
+  "dep:chrono-humanize",
   "dep:itertools",
   "dep:futures",
   "dep:reqwest",

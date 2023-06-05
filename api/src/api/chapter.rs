@@ -1,11 +1,14 @@
 use crate::{
     activities::add::{Add, NewChapter},
-    objects::novel::DbNovel,
+    objects::{
+        chapter::{Chapter, ChapterList},
+        novel::DbNovel,
+    },
     DbHandle,
 };
 use activitypub_federation::{
     config::Data,
-    fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
+    fetch::{collection_id::CollectionId, object_id::ObjectId, webfinger::webfinger_resolve_actor},
     traits::Actor,
 };
 use actix_session::Session;
@@ -77,6 +80,7 @@ pub async fn create_chapter(
     .fetch_one(data.app_data().as_ref())
     .await?
     .sequence
+    .map(|s| s + 1)
     .unwrap_or(0);
 
     let apub_id = format!("{}/{}", novel.apub_id, sequence);
@@ -96,4 +100,46 @@ pub async fn create_chapter(
     .await?;
 
     Ok(())
+}
+
+pub enum ChapterError {
+    NotFound,
+    InternalError(String),
+}
+
+pub async fn get_chapters(
+    novel: String,
+    data: &Data<DbHandle>,
+) -> Result<Vec<Result<Chapter, ChapterError>>, ChapterError> {
+    let path = if novel.contains('@') {
+        novel
+    } else {
+        format!("{}@{}", novel, data.domain())
+    };
+
+    let novel: DbNovel = webfinger_resolve_actor(&path, data)
+        .await
+        .map_err(|_| ChapterError::NotFound)?;
+    let outbox: CollectionId<ChapterList> = novel
+        .outbox
+        .parse::<Url>()
+        .map_err(|e: ParseError| ChapterError::InternalError(e.to_string()))?
+        .into();
+
+    let chapters = outbox
+        .dereference(&novel, data)
+        .await
+        .map_err(|e| ChapterError::InternalError(e.to_string()))?
+        .ordered_items;
+
+    let mut ch = vec![];
+    for c in chapters {
+        let c = c
+            .dereference(data)
+            .await
+            .map_err(|e| ChapterError::InternalError(format!("{}: {}", c, e)));
+        ch.push(c);
+    }
+
+    Ok(ch)
 }

@@ -1,6 +1,6 @@
 use crate::{
     app::ValidationResult,
-    components::{basicinput::*, chapter::NewChapter, errorview::*, listbox::*, toggle::*},
+    components::{basicinput::*, chapter::*, errorview::*, listbox::*, toggle::*},
     fallback::*,
     path::NovelViewParams,
 };
@@ -479,6 +479,8 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
     });
 
     let chapter_button = create_node_ref::<Dialog>(cx);
+    let (new_chapter, trigger_chapter) = create_signal(cx, ());
+    let chapters = create_resource(cx, new_chapter, move |_| get_chapter_list(cx, uuid()));
 
     view! { cx,
         <Title text="Novel"/>
@@ -492,7 +494,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                 }
                     .into_view(cx)
             }>{metadata}</Suspense>
-            <div class="dark:bg-gray-800 w-full rounded-xl px-4 py-2 my-2">
+            <div class="flex flex-col w-full rounded-xl px-4 py-2 my-2 dark:bg-gray-800">
                 <div class="flex flex-row justify-between w-full">
                     <span class="text-gray-600 dark:text-gray-400 text-lg my-auto p-1">
                         "Chapters"
@@ -522,10 +524,58 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                 />
                                 <span class="my-auto pr-1">"New chapter"</span>
                             </button>
-                            <NewChapter novel=uuid() node_ref=chapter_button/>
+                            <NewChapter
+                                novel=uuid()
+                                trigger=trigger_chapter
+                                node_ref=chapter_button
+                            />
                         </Show>
                     </Suspense>
                 </div>
+                <ul>
+                    <Suspense fallback=move || {
+                        view! { cx,
+                            <Icon
+                                icon=CgIcon::CgSpinner
+                                class="block dark:stroke-white py-1 w-10 h-10 mx-auto animate-spin pointer-events-none"
+                            />
+                        }
+                            .into_view(cx)
+                    }>
+                        <ErrorBoundary fallback=move |cx, e| {
+                            view! { cx,
+                                <p class="text-red-600">
+                                    <ul>
+                                        {move || {
+                                            e.get()
+                                                .into_iter()
+                                                .map(|(_, e)| {
+                                                    view! { cx, <li>{e.to_string()}</li> }
+                                                })
+                                                .collect_view(cx)
+                                        }}
+                                    </ul>
+                                </p>
+                            }
+                        }>
+                            {chapters
+                                .read(cx)
+                                .map(|v| {
+                                    v.map(|v| {
+                                        v.into_iter()
+                                            .map(|c| {
+                                                view! { cx,
+                                                    <li>
+                                                        <ChapterEntry chapter=c/>
+                                                    </li>
+                                                }
+                                            })
+                                            .collect_view(cx)
+                                    })
+                                })}
+                        </ErrorBoundary>
+                    </Suspense>
+                </ul>
             </div>
         </div>
     }

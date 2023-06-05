@@ -19,7 +19,7 @@ pub fn hydrate() {
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() {
-    use components::chapter::CreateChapter;
+    use components::chapter::*;
     use routes::{auth::*, novel::*};
 
     _ = ServerLogin::register();
@@ -33,4 +33,5 @@ pub fn register_server_functions() {
     _ = GetNovel::register();
     _ = GetUsername::register();
     _ = CreateChapter::register();
+    _ = GetChapters::register();
 }
