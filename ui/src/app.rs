@@ -149,9 +149,9 @@ fn Overlay(
 
     view! { cx,
         <Body class="main-screen"/>
-        <div class="flex flex-row w-screen">
+        <div class="flex flex-row mx-auto max-w-[100rem]">
             <Sidebar validator=validator logout=logout redirect_path=redirect_path/>
-            <div class="mb-12 md:mb-0 md:ml-60 overflow-y-auto w-full">{children(cx)}</div>
+            <div class="grow mb-12 md:mb-0 overflow-y-auto w-full">{children(cx)}</div>
         </div>
         <BottomBar validator=validator logout=logout redirect_path=redirect_path/>
     }
@@ -173,7 +173,7 @@ fn Sidebar(
     let panel = create_rw_signal(cx, false);
 
     view! { cx,
-        <div class="fixed md:flex flex-none flex-col z-40 p-2 items-start text-xl align-top h-screen left-0 w-0 dark:bg-gray-700 hidden md:w-60">
+        <div class="md:flex flex-none flex-col p-2 items-start text-xl align-top h-screen w-0 hidden md:w-60">
             <A href="/" class="flex flex-row gap-2 w-full p-2 rounded-md hover:dark:bg-gray-800">
                 <Icon
                     icon=OcIcon::OcHomeLg
@@ -306,10 +306,10 @@ fn Sidebar(
                         </Show>
                         <Panel
                             when=panel
-                            class="absolute flex flex-col z-50 left-2 bottom-[4.5rem] mx-0 p-2 w-[94%] dark:bg-gray-900 rounded-md"
+                            class="absolute flex flex-col bottom-[4.5rem] -mx-2 p-2 w-56 dark:bg-gray-800 rounded-md"
                         >
                             <button
-                                class="flex flex-row gap-2 my-auto text-left w-full p-2 rounded-md hover:dark:bg-gray-800"
+                                class="flex flex-row gap-2 my-auto text-left w-full p-2 rounded-md hover:dark:bg-gray-700"
                                 on:click=move |_| logout.dispatch(())
                             >
                                 <Icon
@@ -341,8 +341,8 @@ fn BottomBar(
     let panel = create_rw_signal(cx, false);
 
     view! { cx,
-        <div class="fixed flex flex-col z-40 rounded-t-xl overflow-hidden bottom-0 mt-auto w-screen m-0 p-1 md:hidden dark:bg-gray-950">
-            <Panel when=panel class="p-2 w-full">
+        <div class="fixed bottom-0">
+            <Panel when=panel class="p-2 rounded-t-xl w-full dark:bg-gray-950">
                 <button
                     class="relative flex flex-row gap-3 my-auto text-left w-full p-3 rounded-md hover:dark:bg-gray-900"
                     on:click=move |_| {
@@ -357,7 +357,7 @@ fn BottomBar(
                     <span class="my-auto">"Logout"</span>
                 </button>
             </Panel>
-            <div class="flex flex-row max-h-12 justify-around">
+            <div class="flex flex-row max-h-12 justify-around z-40 overflow-hidden mt-auto w-screen m-0 p-1 md:hidden dark:bg-gray-950">
                 <A href="/">
                     <Icon
                         icon=OcIcon::OcHomeLg
