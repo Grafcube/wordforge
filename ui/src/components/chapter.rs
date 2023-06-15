@@ -141,7 +141,7 @@ pub fn ChapterEntry(cx: Scope, chapter: Result<ChapterItem, ServerFnError>) -> i
             {chapter
                 .map(|c| {
                     view! { cx,
-                        <A href=c.href class="w-full h-full">
+                        <A href=c.href class="block w-full">
                             {c.title}
                         </A>
                     }
@@ -215,6 +215,7 @@ pub async fn get_chapter_list(
     use activitypub_federation::config::Data;
     use chrono_humanize::HumanTime;
     use leptos_actix::extract;
+    use url::Url;
     use wordforge_api::{
         api::chapter::{get_chapters, ChapterError},
         DbHandle,
@@ -228,7 +229,15 @@ pub async fn get_chapter_list(
                 .into_iter()
                 .map(|c| match c {
                     Ok(c) => Ok(ChapterItem {
-                        href: c.apub_id,
+                        href: c
+                            .apub_id
+                            .parse::<Url>()
+                            .unwrap()
+                            .path_segments()
+                            .unwrap()
+                            .last()
+                            .unwrap()
+                            .to_string(),
                         title: c.title,
                         summary: c.summary,
                         sensitive: c.sensitive,

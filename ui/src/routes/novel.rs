@@ -534,7 +534,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                     </Suspense>
                 </div>
                 <ol
-                    class="my-2 gap-1 list-decimal list-inside marker:text-gray-400"
+                    class="my-2 gap-1 list-decimal marker:mr-4 marker:content-[counter(item)] marker:text-gray-400"
                     style=move || format!("counter-reset: item {}", chapters_len())
                     reversed
                 >
@@ -572,7 +572,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                             .map(|c| {
                                                 view! { cx,
                                                     <li
-                                                        class="p-2 before:pr-2 mx-auto w-full rounded-xl marker:content-[counter(item)] hover:dark:bg-gray-900"
+                                                        class="ml-1 p-2 mx-auto w-full rounded-xl hover:dark:bg-gray-900"
                                                         style="counter-increment: item -1"
                                                     >
                                                         <ChapterEntry chapter=c/>
