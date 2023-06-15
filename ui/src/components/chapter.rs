@@ -193,7 +193,9 @@ pub struct ChapterItem {
     pub summary: String,
     pub sensitive: bool,
     pub published: String,
+    pub published_exact: String,
     pub updated: Option<String>,
+    pub updated_exact: Option<String>,
 }
 
 #[server(GetChapters, "/server")]
@@ -222,7 +224,9 @@ pub async fn get_chapter_list(
                         summary: c.summary,
                         sensitive: c.sensitive,
                         published: HumanTime::from(c.published).to_string(),
+                        published_exact: c.published.to_rfc2822(),
                         updated: c.updated.map(|c| HumanTime::from(c).to_string()),
+                        updated_exact: c.updated.map(|u| u.to_rfc2822()),
                     }),
                     Err(ChapterError::NotFound) => {
                         Err(ServerFnError::ServerError("Chapter not found".to_string()))
