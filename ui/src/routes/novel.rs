@@ -456,7 +456,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                              view! { cx,
                                                  <a
                                                      href=format!("/explore/tags/{tag}")
-                                                     class="italic mb-2 mt-auto dark:text-gray-500 dark:hover:text-gray-400 rounded-full text-xl md:text-base"
+                                                     class="italic mb-2 mt-auto dark:text-gray-500 dark:hover:text-gray-400 hover:underline rounded-full text-xl md:text-base"
                                                  >
                                                      {format!("#{tag}")}
                                                  </a>
