@@ -481,6 +481,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
     let chapter_button = create_node_ref::<Dialog>(cx);
     let (new_chapter, trigger_chapter) = create_signal(cx, ());
     let chapters = create_resource(cx, new_chapter, move |_| get_chapter_list(cx, uuid()));
+    let (chapters_len, set_chapters_len) = create_signal(cx, 0);
 
     view! { cx,
         <Title text="Novel"/>
@@ -532,7 +533,11 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                         </Show>
                     </Suspense>
                 </div>
-                <ul>
+                <ol
+                    class="my-2 gap-1 list-decimal list-inside marker:text-gray-400"
+                    style=move || format!("counter-reset: item {}", chapters_len())
+                    reversed
+                >
                     <Suspense fallback=move || {
                         view! { cx,
                             <Icon
@@ -562,10 +567,14 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                 .read(cx)
                                 .map(|v| {
                                     v.map(|v| {
+                                        set_chapters_len(v.len() + 1);
                                         v.into_iter()
                                             .map(|c| {
                                                 view! { cx,
-                                                    <li>
+                                                    <li
+                                                        class="p-2 before:pr-2 mx-auto w-full rounded-xl marker:content-[counter(item)] hover:dark:bg-gray-900"
+                                                        style="counter-increment: item -1"
+                                                    >
                                                         <ChapterEntry chapter=c/>
                                                     </li>
                                                 }
@@ -575,7 +584,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                 })}
                         </ErrorBoundary>
                     </Suspense>
-                </ul>
+                </ol>
             </div>
         </div>
     }

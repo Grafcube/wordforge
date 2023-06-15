@@ -137,7 +137,16 @@ pub fn ChapterEntry(cx: Scope, chapter: Result<ChapterItem, ServerFnError>) -> i
                     </ul>
                 </p>
             }
-        }>{chapter.map(|c| c.href)}</ErrorBoundary>
+        }>
+            {chapter
+                .map(|c| {
+                    view! { cx,
+                        <A href=c.href class="w-full h-full">
+                            {c.title}
+                        </A>
+                    }
+                })}
+        </ErrorBoundary>
     }
 }
 
