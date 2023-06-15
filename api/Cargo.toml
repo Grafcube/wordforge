@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust", rev = "5181f15", default-features = false, features = [
+activitypub_federation = { version = "0.4.1", default-features = false, features = [
   "actix-web",
 ] }
 actix-session = { version = "0.7.2", features = [
