@@ -1,4 +1,4 @@
-use crate::components::{basicinput::FloatingLabel, toggle::Toggle};
+use crate::components::{basicinput::FloatingLabel, toggle::Toggle, tooltip::Tooltip};
 use leptos::{
     ev::{Event, KeyboardEvent},
     html::*,
@@ -141,8 +141,37 @@ pub fn ChapterEntry(cx: Scope, chapter: Result<ChapterItem, ServerFnError>) -> i
             {chapter
                 .map(|c| {
                     view! { cx,
-                        <A href=c.href class="block w-full">
-                            {c.title}
+                        <A href=c.href class="flex flex-col gap-1 w-full p-2 rounded-xl hover:dark:bg-gray-900">
+                            <div class="flex flex-row justify-between">
+                                <div class="flex flex-row gap-1">
+                                    {c
+                                        .sensitive
+                                        .then_some(
+                                            view! { cx, <span class="dark:bg-red-600 rounded-full my-auto px-1 text-sm">"CW"</span> },
+                                        )} <h3 class="font-bold">{c.title}</h3>
+                                </div>
+                                <Tooltip view=move || c.published_exact.clone()>
+                                    <span class="dark:text-gray-400">{c.published}</span>
+                                </Tooltip>
+                                {c
+                                    .updated_exact
+                                    .map(|v| {
+                                        view! { cx,
+                                            <Tooltip view=move || v.clone()>
+                                                <span class="dark:text-gray-400">{c.updated}</span>
+                                            </Tooltip>
+                                        }
+                                    })}
+                            </div>
+                            <div class="italic h-6 text-sm overflow-hidden overflow-ellipsis">
+                                {c
+                                    .summary
+                                    .lines()
+                                    .map(|p| {
+                                        view! { cx, <p>{p.to_string()}</p> }
+                                    })
+                                    .collect::<Vec<_>>()}
+                            </div>
                         </A>
                     }
                 })}
@@ -243,7 +272,7 @@ pub async fn get_chapter_list(
                         sensitive: c.sensitive,
                         published: HumanTime::from(c.published).to_string(),
                         published_exact: c.published.to_rfc2822(),
-                        updated: c.updated.map(|c| HumanTime::from(c).to_string()),
+                        updated: c.updated.map(|c| format!(" ({})", HumanTime::from(c))),
                         updated_exact: c.updated.map(|u| u.to_rfc2822()),
                     }),
                     Err(ChapterError::NotFound) => {
