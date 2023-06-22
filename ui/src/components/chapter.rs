@@ -142,7 +142,7 @@ pub fn ChapterEntry(cx: Scope, chapter: Result<ChapterItem, ServerFnError>) -> i
                 .map(|c| {
                     view! { cx,
                         <A href=c.href class="flex flex-col gap-1 w-full p-2 rounded-xl hover:dark:bg-gray-900">
-                            <div class="flex flex-row justify-between">
+                            <div class="flex flex-row justify-between text-xl md:text-base">
                                 <div class="flex flex-row gap-1">
                                     {c
                                         .sensitive
@@ -163,7 +163,7 @@ pub fn ChapterEntry(cx: Scope, chapter: Result<ChapterItem, ServerFnError>) -> i
                                         }
                                     })}
                             </div>
-                            <div class="italic h-6 text-sm overflow-hidden overflow-ellipsis">
+                            <div class="italic h-6 md:text-sm overflow-hidden overflow-ellipsis">
                                 {c
                                     .summary
                                     .lines()

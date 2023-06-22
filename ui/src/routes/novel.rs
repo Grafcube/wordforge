@@ -351,7 +351,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                 view! { cx,
                     <div class="dark:bg-gray-800 rounded-xl px-4 py-2 my-2">
                         <span class="text-gray-500 dark:text-gray-400">"Authors"</span>
-                        <div class="flex flex-row justify-start flex-wrap gap-1 text-xl md:text-base overflow-auto max-h-40">
+                        <div class="flex flex-row justify-start flex-wrap gap-1 overflow-auto max-h-40">
                             {users
                                 .into_iter()
                                 .map(|res| match res {
@@ -359,7 +359,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                         log!("UNKNOWN: {e}");
                                         view! { cx,
                                             <a href=apub_id class="flex flex-col gap-0 dark:bg-gray-950 rounded-full px-4">
-                                                <span class="my-auto text-sm md:text-xs dark:text-gray-500">{role}</span>
+                                                <span class="my-auto text-xs dark:text-gray-500">{role}</span>
                                                 <span class="my-auto dark:text-gray-400">"UNKNOWN"</span>
                                             </a>
                                         }
@@ -372,7 +372,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                                                     {role
                                                         .ne("None")
                                                         .then_some(
-                                                            view! { cx, <span class="my-auto text-sm md:text-xs dark:text-gray-500">{role}</span> },
+                                                            view! { cx, <span class="my-auto text-xs dark:text-gray-500">{role}</span> },
                                                         )} <span class="my-auto">{v}</span>
                                                 </div>
                                             </a>
