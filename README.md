@@ -45,6 +45,12 @@ using ActivityPub.
     - [x] Set language
     - [ ] Editing and deleting
     - [x] Federate books
+    - [x] Chapters
+      - [x] List chapters
+      - [x] Create chapters
+      - [ ] Edit chapters
+      - [ ] Delete chapters
+      - [ ] Write content
   - [ ] Comic books
     - [ ] [libacbf](https://codeberg.org/Grafcube/libacbf)
   - [ ] Compiling into volumes
