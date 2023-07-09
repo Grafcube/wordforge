@@ -64,6 +64,7 @@ fn Login(cx: Scope, redirect_to: String, set_errormsg: WriteSignal<String>) -> i
                     class="basic-input peer"
                     placeholder=" "
                     name="password"
+                    minlength=8
                     required
                 />
                 <FloatingLabel target="password">"Password"</FloatingLabel>
@@ -183,6 +184,7 @@ fn Register(cx: Scope, redirect_to: String, set_errormsg: WriteSignal<String>) -
                     class="basic-input peer"
                     placeholder=" "
                     name="password"
+                    minlength=8
                     required
                 />
                 <FloatingLabel target="password">"Password"</FloatingLabel>
