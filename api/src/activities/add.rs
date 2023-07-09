@@ -93,7 +93,7 @@ impl Add {
         chapter: NewChapter,
         actor: Url,
         inbox: Url,
-        scheme: String,
+        scheme: &str,
         data: &Data<DbHandle>,
     ) -> anyhow::Result<Url> {
         let user = User::read_from_id(actor.clone(), data)

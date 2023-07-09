@@ -77,9 +77,9 @@ async fn webfinger(
             Some("Person"),
         ),
     ]
-    .iter()
+    .into_iter()
     .filter(|v| v.0.is_some())
-    .map(|v| (v.0.clone().unwrap(), v.1))
+    .map(|v| (v.0.unwrap(), v.1))
     .collect();
 
     if urls.is_empty() {

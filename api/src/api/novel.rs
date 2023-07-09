@@ -16,12 +16,16 @@ use isolang::Language;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::query;
+use thiserror::Error;
 use uuid::Uuid;
 
-pub enum CreateNovelResult {
-    Ok(String),
+#[derive(Debug, Error)]
+pub enum CreateNovelError {
+    #[error("Create Novel: Unauthorized: {0}")]
     Unauthorized(String),
+    #[error("Create Novel: BadRequest: {0}")]
     BadRequest(String),
+    #[error("Create Novel: InternalServerError: {0}")]
     InternalServerError(String),
 }
 
@@ -41,20 +45,20 @@ pub async fn create_novel(
     pool: Data<DbHandle>,
     session: Session,
     info: NewNovel,
-) -> CreateNovelResult {
+) -> Result<String, CreateNovelError> {
     let apub_id = match session.get::<String>("id") {
-        Err(e) => return CreateNovelResult::InternalServerError(e.to_string()),
+        Err(e) => return Err(CreateNovelError::InternalServerError(e.to_string())),
         Ok(Some(u)) => u,
-        Ok(None) => return CreateNovelResult::Unauthorized("Not signed in".to_string()),
+        Ok(None) => return Err(CreateNovelError::Unauthorized("Not signed in".to_string())),
     };
     session.renew();
 
-    let scheme = state.scheme.clone();
+    let scheme = &state.scheme;
 
     let re = regex::Regex::new(r#"[\r\n]+"#).unwrap();
     let title = re.replace_all(info.title.trim(), "");
     let lang = match Language::from_name(info.lang.as_str()) {
-        None => return CreateNovelResult::BadRequest("Invalid language".to_string()),
+        None => return Err(CreateNovelError::BadRequest("Invalid language".to_string())),
         Some(l) => l.to_639_1(),
     };
     let tags = TAG_RE
@@ -64,13 +68,11 @@ pub async fn create_novel(
         .dedup_by(|a, b| a.to_lowercase() == b.to_lowercase())
         .collect_vec();
     let uuid = Uuid::new_v4();
-    let keypair = match generate_actor_keypair() {
-        Ok(k) => k,
-        Err(e) => return CreateNovelResult::InternalServerError(e.to_string()),
-    };
+    let keypair = generate_actor_keypair()
+        .map_err(|e| CreateNovelError::InternalServerError(e.to_string()))?;
     let url = format!(
         "{}://{}/novel/{}",
-        scheme.clone(),
+        scheme,
         pool.domain(),
         uuid.to_string().to_lowercase()
     );
@@ -97,10 +99,10 @@ pub async fn create_novel(
     .await
     {
         Ok(row) => row.apub_id,
-        Err(e) => return CreateNovelResult::InternalServerError(e.to_string()),
+        Err(e) => return Err(CreateNovelError::InternalServerError(e.to_string())),
     };
 
-    if let Err(e) = query!(
+    query!(
         "INSERT INTO author_roles VALUES ($1, $2, $3)",
         id,
         apub_id,
@@ -108,46 +110,42 @@ pub async fn create_novel(
     )
     .execute(pool.app_data().as_ref())
     .await
-    {
-        return CreateNovelResult::InternalServerError(e.to_string());
-    };
-    CreateNovelResult::Ok(uuid.to_string().to_lowercase())
+    .map_err(|e| CreateNovelError::InternalServerError(e.to_string()))?;
+    Ok(uuid.to_string().to_lowercase())
 }
 
-pub enum GetNovelResult {
-    Ok(Box<Novel>),
+#[derive(Debug, Error)]
+pub enum GetNovelError {
+    #[error("GetNovel PermanentRedirect: {0}")]
     PermanentRedirect(String),
+    #[error("GetNovel WebfingerNotFound")]
     WebfingerNotFound,
+    #[error("GetNovel NovelNotFound")]
     NovelNotFound,
+    #[error("GetNovel InternalServerError: {0}")]
     InternalServerError(String),
 }
 
-pub async fn get_novel(uuid: String, data: &Data<DbHandle>) -> GetNovelResult {
+pub async fn get_novel(uuid: String, data: &Data<DbHandle>) -> Result<Box<Novel>, GetNovelError> {
     if uuid.ends_with(data.domain()) {
-        let id = match extract_webfinger_name(&format!("acct:{uuid}"), data) {
-            Ok(v) => v,
-            Err(_) => return GetNovelResult::WebfingerNotFound,
-        };
-        return GetNovelResult::PermanentRedirect(format!("/novel/{id}"));
+        let id = extract_webfinger_name(&format!("acct:{uuid}"), data)
+            .map_err(|_| GetNovelError::WebfingerNotFound)?;
+        return Err(GetNovelError::PermanentRedirect(format!("/novel/{id}")));
     }
     let novel = if uuid.contains('@') {
-        match webfinger_resolve_actor(&uuid, data).await {
-            Ok(v) => v,
-            Err(_) => return GetNovelResult::NovelNotFound,
-        }
+        webfinger_resolve_actor(&uuid, data)
+            .await
+            .map_err(|_| GetNovelError::NovelNotFound)?
     } else {
-        let id = match Uuid::parse_str(&uuid) {
-            Ok(v) => v,
-            Err(_) => return GetNovelResult::NovelNotFound,
-        };
+        let id = Uuid::parse_str(&uuid).map_err(|_| GetNovelError::NovelNotFound)?;
         match DbNovel::read_from_uuid(id, data).await {
             Ok(Some(v)) => v,
-            Err(e) => return GetNovelResult::InternalServerError(e.to_string()),
-            Ok(None) => return GetNovelResult::NovelNotFound,
+            Err(e) => return Err(GetNovelError::InternalServerError(e.to_string())),
+            Ok(None) => return Err(GetNovelError::NovelNotFound),
         }
     };
     match novel.into_json(data).await {
-        Ok(v) => GetNovelResult::Ok(Box::new(v)),
-        Err(e) => GetNovelResult::InternalServerError(e.to_string()),
+        Ok(v) => Ok(Box::new(v)),
+        Err(e) => Err(GetNovelError::InternalServerError(e.to_string())),
     }
 }

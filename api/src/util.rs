@@ -9,5 +9,5 @@ lazy_static! {
 
 #[derive(Clone, Debug)]
 pub struct AppState {
-    pub scheme: String,
+    pub scheme: Box<str>,
 }

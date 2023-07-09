@@ -26,7 +26,7 @@ pub async fn new_chapter(
     chapter: NewChapter,
     session: Session,
     data: &Data<DbHandle>,
-    scheme: String,
+    scheme: &str,
 ) -> Result<(), ChapterCreationError> {
     let apub_id: Url = session
         .get::<String>("id")

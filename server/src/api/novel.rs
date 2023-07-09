@@ -17,7 +17,7 @@ use url::Url;
 use uuid::Uuid;
 use wordforge_api::{
     activities::{self, add::NewChapter},
-    api::novel::{self, create_novel, CreateNovelResult, GetNovelResult, NewNovel},
+    api::novel::{self, create_novel, CreateNovelError, GetNovelError, NewNovel},
     objects::{
         chapter::ChapterList,
         novel::{DbNovel, NovelAcceptedActivities},
@@ -35,10 +35,10 @@ async fn new_novel(
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
     match create_novel(state, data, session, info.into_inner()).await {
-        CreateNovelResult::Ok(id) => Ok(HttpResponse::Ok().body(id)),
-        CreateNovelResult::Unauthorized(e) => Err(ErrorUnauthorized(e)),
-        CreateNovelResult::BadRequest(e) => Err(ErrorBadRequest(e)),
-        CreateNovelResult::InternalServerError(e) => Err(ErrorInternalServerError(e)),
+        Ok(id) => Ok(HttpResponse::Ok().body(id)),
+        Err(CreateNovelError::Unauthorized(e)) => Err(ErrorUnauthorized(e)),
+        Err(CreateNovelError::BadRequest(e)) => Err(ErrorBadRequest(e)),
+        Err(CreateNovelError::InternalServerError(e)) => Err(ErrorInternalServerError(e)),
     }
 }
 
@@ -47,13 +47,17 @@ pub async fn get_novel(
     data: Data<DbHandle>,
 ) -> actix_web::Result<HttpResponse> {
     match novel::get_novel(path.into_inner(), &data).await {
-        GetNovelResult::Ok(v) => Ok(HttpResponse::Ok().json(WithContext::new_default(v))),
-        GetNovelResult::PermanentRedirect(loc) => Ok(HttpResponse::PermanentRedirect()
+        Ok(v) => Ok(HttpResponse::Ok().json(WithContext::new_default(v))),
+        Err(GetNovelError::PermanentRedirect(loc)) => Ok(HttpResponse::PermanentRedirect()
             .append_header(("Location", loc))
             .finish()),
-        GetNovelResult::WebfingerNotFound => Err(ErrorNotFound(json!({ "error": "Bad request" }))),
-        GetNovelResult::NovelNotFound => Err(ErrorNotFound(json!({ "error": "Novel not found" }))),
-        GetNovelResult::InternalServerError(e) => Err(ErrorInternalServerError(e)),
+        Err(GetNovelError::WebfingerNotFound) => {
+            Err(ErrorNotFound(json!({ "error": "Bad request" })))
+        }
+        Err(GetNovelError::NovelNotFound) => {
+            Err(ErrorNotFound(json!({ "error": "Novel not found" })))
+        }
+        Err(GetNovelError::InternalServerError(e)) => Err(ErrorInternalServerError(e)),
     }
 }
 
@@ -76,15 +80,10 @@ async fn add_chapter(
         .await
         .map_err(|_| ErrorNotFound("Novel not found"))?;
     let novel_id = novel_id.inbox();
-    let activity_id = activities::add::Add::send(
-        info.into_inner(),
-        apub_id,
-        novel_id,
-        state.scheme.clone(),
-        &data,
-    )
-    .await
-    .map_err(ErrorInternalServerError)?;
+    let activity_id =
+        activities::add::Add::send(info.into_inner(), apub_id, novel_id, &state.scheme, &data)
+            .await
+            .map_err(ErrorInternalServerError)?;
 
     // TODO: Response with Chapter apub_id
     Ok(HttpResponse::Ok().body(activity_id.to_string()))

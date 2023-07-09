@@ -90,14 +90,12 @@ pub async fn login(
 ) -> Result<Result<String, String>, ServerFnError> {
     use activitypub_federation::config::Data;
     use actix_session::Session;
-    use actix_web::http::StatusCode;
-    use leptos_actix::{extract, ResponseOptions};
+    use leptos_actix::extract;
     use wordforge_api::{
-        account::{self, LoginAuthError, LoginResult},
+        account::{self, FormAuthError, LoginError},
         DbHandle,
     };
 
-    let resp = use_context::<ResponseOptions>(cx).unwrap();
     let (pool, session) = extract(cx, |pool: Data<DbHandle>, session: Session| async move {
         (pool, session)
     })
@@ -113,7 +111,7 @@ pub async fn login(
     )
     .await
     {
-        LoginResult::Ok(apub_id) => {
+        Ok(apub_id) => {
             leptos_actix::redirect(
                 cx,
                 if redirect_to == "/auth" {
@@ -124,19 +122,15 @@ pub async fn login(
             );
             Ok(Ok(apub_id))
         }
-        LoginResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
-        LoginResult::BadRequest(e) => {
-            resp.set_status(StatusCode::BAD_REQUEST);
-            Ok(Err(e))
+        Err(LoginError::InternalServerError(e)) => Err(ServerFnError::ServerError(e)),
+        Err(LoginError::BadRequest(e)) => Ok(Err(e)),
+        Err(LoginError::Unauthorized(FormAuthError::Email)) => {
+            Ok(Err("Email not found".to_string()))
         }
-        LoginResult::Unauthorized(LoginAuthError::Email) => {
-            resp.set_status(StatusCode::UNAUTHORIZED);
-            Ok(Err("Email address is not registered".to_string()))
-        }
-        LoginResult::Unauthorized(LoginAuthError::Password) => {
-            resp.set_status(StatusCode::UNAUTHORIZED);
+        Err(LoginError::Unauthorized(FormAuthError::Password)) => {
             Ok(Err("Wrong password".to_string()))
         }
+        _ => unreachable!(),
     }
 }
 
@@ -209,15 +203,14 @@ pub async fn register(
     redirect_to: String,
 ) -> Result<Result<String, String>, ServerFnError> {
     use activitypub_federation::config::Data;
-    use actix_web::{http::StatusCode, web};
-    use leptos_actix::{extract, ResponseOptions};
+    use actix_web::web;
+    use leptos_actix::extract;
     use wordforge_api::{
-        account::{self, RegisterAuthError, RegistrationResult},
+        account::{self, FormAuthError, RegistrationError},
         util::AppState,
         DbHandle,
     };
 
-    let resp = use_context::<ResponseOptions>(cx).unwrap();
     let (pool, state) = extract(
         cx,
         |pool: Data<DbHandle>, state: web::Data<AppState>| async move { (pool, state) },
@@ -234,21 +227,15 @@ pub async fn register(
     )
     .await
     {
-        RegistrationResult::Ok => {
-            login(cx, email, password, client_app, client_website, redirect_to).await
+        Ok(_) => login(cx, email, password, client_app, client_website, redirect_to).await,
+        Err(RegistrationError::BadRequest(e)) => Ok(Err(e)),
+        Err(RegistrationError::Conflict(FormAuthError::Email)) => {
+            Ok(Err("Email in use".to_string()))
         }
-        RegistrationResult::BadRequest(e) => {
-            resp.set_status(StatusCode::BAD_REQUEST);
-            Ok(Err(e))
-        }
-        RegistrationResult::Conflict(RegisterAuthError::Email) => {
-            resp.set_status(StatusCode::CONFLICT);
-            Ok(Err("Email is already registered".to_string()))
-        }
-        RegistrationResult::Conflict(RegisterAuthError::Username) => {
-            resp.set_status(StatusCode::BAD_REQUEST);
+        Err(RegistrationError::Conflict(FormAuthError::Username)) => {
             Ok(Err("Username is taken".to_string()))
         }
-        RegistrationResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
+        Err(RegistrationError::InternalServerError(e)) => Err(ServerFnError::ServerError(e)),
+        _ => unreachable!(),
     }
 }

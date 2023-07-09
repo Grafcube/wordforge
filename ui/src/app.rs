@@ -10,8 +10,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum ValidationResult {
-    Ok((String, String)),
+pub enum ValidationError {
     Unauthorized(String),
     Error(String),
 }
@@ -22,7 +21,7 @@ pub fn App(cx: Scope) -> impl IntoView {
     let valid = move |cx| {
         validate
             .read(cx)
-            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+            .map(|resp| resp.unwrap_or_else(|e| Err(ValidationError::Error(e.to_string()))))
     };
 
     provide_context(cx, validate);
@@ -48,17 +47,17 @@ pub fn App(cx: Scope) -> impl IntoView {
                                 <Suspense fallback=|| ()>
                                     {move || match valid(cx) {
                                         None => ().into_view(cx),
-                                        Some(ValidationResult::Ok(_)) => {
+                                        Some(Ok(_)) => {
                                             view! { cx, <Redirect path="/"/> }
                                                 .into_view(cx)
                                         }
-                                        Some(ValidationResult::Unauthorized(e)) => {
+                                        Some(Err(ValidationError::Unauthorized(e))) => {
                                             log!("Validation: {}", e);
                                             view! { cx, <Auth/> }
                                                 .into_view(cx)
                                         }
-                                        Some(ValidationResult::Error(e)) => {
-                                            error!("ValidationResult::Error@app::Router: {}", e);
+                                        Some(Err(ValidationError::Error(e))) => {
+                                            error!("ValidationError::Error@app::Router: {}", e);
                                             view! { cx, <InternalErrorPage/> }
                                                 .into_view(cx)
                                         }
@@ -74,17 +73,17 @@ pub fn App(cx: Scope) -> impl IntoView {
                                 <Suspense fallback=|| ()>
                                     {move || match valid(cx) {
                                         None => ().into_view(cx),
-                                        Some(ValidationResult::Ok(_)) => {
+                                        Some(Ok(_)) => {
                                             view! { cx, <CreateBook/> }
                                                 .into_view(cx)
                                         }
-                                        Some(ValidationResult::Unauthorized(e)) => {
+                                        Some(Err(ValidationError::Unauthorized(e))) => {
                                             log!("Validation: {}", e);
                                             view! { cx, <Redirect path="/auth"/> }
                                                 .into_view(cx)
                                         }
-                                        Some(ValidationResult::Error(e)) => {
-                                            error!("ValidationResult::Error@app::Router: {}", e);
+                                        Some(Err(ValidationError::Error(e))) => {
+                                            error!("ValidationError::Error@app::Router: {}", e);
                                             view! { cx, <InternalErrorPage/> }
                                                 .into_view(cx)
                                         }
@@ -116,7 +115,7 @@ fn Home(cx: Scope) -> impl IntoView {
 #[component]
 fn Overlay(
     cx: Scope,
-    validator: Resource<(), Result<ValidationResult, ServerFnError>>,
+    validator: Resource<(), Result<Result<(String, String), ValidationError>, ServerFnError>>,
     children: Children,
 ) -> impl IntoView {
     let loc = use_location(cx);
@@ -160,14 +159,14 @@ fn Overlay(
 #[component]
 fn Sidebar(
     cx: Scope,
-    validator: Resource<(), Result<ValidationResult, ServerFnError>>,
+    validator: Resource<(), Result<Result<(String, String), ValidationError>, ServerFnError>>,
     logout: Action<(), Result<(), ServerFnError>>,
     redirect_path: Memo<String>,
 ) -> impl IntoView {
     let valid = create_memo(cx, move |_| {
         validator
             .read(cx)
-            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+            .map(|resp| resp.unwrap_or_else(|e| Err(ValidationError::Error(e.to_string()))))
     });
     let (name, set_name) = create_signal::<Option<String>>(cx, None);
     let panel = create_rw_signal(cx, false);
@@ -224,7 +223,7 @@ fn Sidebar(
                                 }
                                     .into_view(cx)
                             }
-                            Some(ValidationResult::Ok(_)) => {
+                            Some(Ok(_)) => {
                                 view! { cx,
                                     <A
                                         href="/create"
@@ -239,7 +238,7 @@ fn Sidebar(
                                 }
                                     .into_view(cx)
                             }
-                            Some(ValidationResult::Unauthorized(e)) => {
+                            Some(Err(ValidationError::Unauthorized(e))) => {
                                 log!("Validation: {}", e);
                                 view! { cx,
                                     <A
@@ -255,8 +254,8 @@ fn Sidebar(
                                 }
                                     .into_view(cx)
                             }
-                            Some(ValidationResult::Error(e)) => {
-                                error!("ValidationResult::Error@app::Sidebar: {}", e);
+                            Some(Err(ValidationError::Error(e))) => {
+                                error!("ValidationError::Error@app::Sidebar: {}", e);
                                 view! { cx,
                                     <span class="w-full p-2 rounded-md text-center dark:bg-gray-600 hover:dark:bg-gray-700">
                                         "Something went wrong"
@@ -271,7 +270,7 @@ fn Sidebar(
             <Transition fallback=|| ()>
                 <Show
                     when=move || {
-                        if let Some(ValidationResult::Ok((_, name))) = valid() {
+                        if let Some(Ok((_, name))) = valid() {
                             set_name(Some(name));
                             true
                         } else {
@@ -329,14 +328,14 @@ fn Sidebar(
 #[component]
 fn BottomBar(
     cx: Scope,
-    validator: Resource<(), Result<ValidationResult, ServerFnError>>,
+    validator: Resource<(), Result<Result<(String, String), ValidationError>, ServerFnError>>,
     logout: Action<(), Result<(), ServerFnError>>,
     redirect_path: Memo<String>,
 ) -> impl IntoView {
     let valid = create_memo(cx, move |_| {
         validator
             .read(cx)
-            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+            .map(|resp| resp.unwrap_or_else(|e| Err(ValidationError::Error(e.to_string()))))
     });
     let panel = create_rw_signal(cx, false);
 
@@ -386,7 +385,7 @@ fn BottomBar(
                                 }
                                     .into_view(cx)
                             }
-                            Some(ValidationResult::Ok(_)) => {
+                            Some(Ok(_)) => {
                                 view! { cx,
                                     <A href="/create">
                                         <Icon
@@ -401,7 +400,7 @@ fn BottomBar(
                                 }
                                     .into_view(cx)
                             }
-                            Some(ValidationResult::Unauthorized(e)) => {
+                            Some(Err(ValidationError::Unauthorized(e))) => {
                                 log!("Validation: {}", e);
                                 view! { cx,
                                     <A href=format!("/auth?redirect_to={}", redirect_path())>
@@ -413,8 +412,8 @@ fn BottomBar(
                                 }
                                     .into_view(cx)
                             }
-                            Some(ValidationResult::Error(e)) => {
-                                error!("ValidationResult::Error@app::BottomBar: {}", e);
+                            Some(Err(ValidationError::Error(e))) => {
+                                error!("ValidationError::Error@app::BottomBar: {}", e);
                                 view! { cx,
                                     <Icon
                                         icon=OcIcon::OcCircleSlashLg
@@ -432,34 +431,27 @@ fn BottomBar(
 }
 
 #[server(UserValidate, "/server")]
-async fn validate(cx: Scope) -> Result<ValidationResult, ServerFnError> {
+async fn validate(cx: Scope) -> Result<Result<(String, String), ValidationError>, ServerFnError> {
     use activitypub_federation::config::Data;
     use actix_session::Session;
-    use actix_web::http::StatusCode;
-    use leptos_actix::{extract, ResponseOptions};
+    use leptos_actix::extract;
     use wordforge_api::{
-        account::{self, UserValidateResult},
+        account::{self, UserValidateError},
         DbHandle,
     };
 
-    let resp = use_context::<ResponseOptions>(cx).unwrap();
     let (pool, session) = extract(cx, |pool: Data<DbHandle>, session: Session| async move {
         (pool, session)
     })
     .await?;
 
-    match account::validate(pool.app_data().as_ref(), session).await {
-        UserValidateResult::Ok((apub_id, name)) => Ok(ValidationResult::Ok((apub_id, name))),
-        UserValidateResult::Unauthorized(v) => Ok(ValidationResult::Unauthorized(v)),
-        UserValidateResult::InternalServerError(v) => {
-            resp.set_status(StatusCode::INTERNAL_SERVER_ERROR);
-            Ok(ValidationResult::Error(v))
-        }
-        UserValidateResult::NotFound(v) => {
-            resp.set_status(StatusCode::NOT_FOUND);
-            Ok(ValidationResult::Error(v))
-        }
-    }
+    Ok(account::validate(pool.app_data().as_ref(), session)
+        .await
+        .map_err(|e| match e {
+            UserValidateError::Unauthorized(v) => ValidationError::Unauthorized(v),
+            UserValidateError::InternalServerError(v) => ValidationError::Error(v),
+            UserValidateError::NotFound(v) => ValidationError::Error(v),
+        }))
 }
 
 #[server(Logout, "/server")]

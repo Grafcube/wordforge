@@ -42,7 +42,7 @@ async fn main() -> io::Result<()> {
     let redis_url = format!("localhost:{redis_port}");
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let state = AppState {
-        scheme: env::var("SCHEME").expect("SCHEME is required"),
+        scheme: env::var("SCHEME").expect("SCHEME is required").into(),
     };
     let config = new_database(addr.to_string(), db_url)
         .await

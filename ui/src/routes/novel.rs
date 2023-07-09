@@ -1,5 +1,5 @@
 use crate::{
-    app::ValidationResult,
+    app::ValidationError,
     components::{basicinput::*, chapter::*, errorview::*, listbox::*, toggle::*},
     fallback::*,
     path::NovelViewParams,
@@ -232,17 +232,16 @@ pub async fn create_novel(
 ) -> Result<Result<(), String>, ServerFnError> {
     use activitypub_federation::config::Data;
     use actix_session::Session;
-    use actix_web::{http::StatusCode, web};
-    use leptos_actix::{extract, ResponseOptions};
+    use actix_web::web;
+    use leptos_actix::extract;
     use std::str::FromStr;
     use wordforge_api::{
-        api::novel::{self, CreateNovelResult, NewNovel},
+        api::novel::{self, CreateNovelError, NewNovel},
         enums::*,
         util::AppState,
         DbHandle,
     };
 
-    let resp = use_context::<ResponseOptions>(cx).unwrap();
     let (pool, state, session) = extract(
         cx,
         |pool: Data<DbHandle>, state: web::Data<AppState>, session: Session| async move {
@@ -257,14 +256,12 @@ pub async fn create_novel(
         genre: match Genres::from_str(&genre) {
             Ok(g) => g,
             Err(_) => {
-                resp.set_status(StatusCode::BAD_REQUEST);
                 return Ok(Err("Select a genre".to_string()));
             }
         },
         role: match Roles::from_str(&role) {
             Ok(r) => r,
             Err(_) => {
-                resp.set_status(StatusCode::BAD_REQUEST);
                 return Ok(Err("Select your role".to_string()));
             }
         },
@@ -274,16 +271,10 @@ pub async fn create_novel(
     };
 
     match novel::create_novel(state, pool, session, info).await {
-        CreateNovelResult::Ok(id) => Ok(Ok(leptos_actix::redirect(cx, &format!("/novel/{}", id)))),
-        CreateNovelResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
-        CreateNovelResult::Unauthorized(e) => {
-            resp.set_status(StatusCode::UNAUTHORIZED);
-            Ok(Err(e))
-        }
-        CreateNovelResult::BadRequest(e) => {
-            resp.set_status(StatusCode::BAD_REQUEST);
-            Ok(Err(e))
-        }
+        Ok(id) => Ok(Ok(leptos_actix::redirect(cx, &format!("/novel/{}", id)))),
+        Err(CreateNovelError::InternalServerError(e)) => Err(ServerFnError::ServerError(e)),
+        Err(CreateNovelError::Unauthorized(e)) => Ok(Err(e)),
+        Err(CreateNovelError::BadRequest(e)) => Ok(Err(e)),
     }
 }
 
@@ -470,12 +461,14 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
         })
     };
 
-    let validate =
-        use_context::<Resource<(), Result<ValidationResult, ServerFnError>>>(cx).unwrap();
+    let validate = use_context::<
+        Resource<(), Result<Result<(String, String), ValidationError>, ServerFnError>>,
+    >(cx)
+    .unwrap();
     let valid = create_memo(cx, move |_| {
         validate
             .read(cx)
-            .map(|resp| resp.unwrap_or_else(|e| ValidationResult::Error(e.to_string())))
+            .map(|resp| resp.unwrap_or_else(|e| Err(ValidationError::Error(e.to_string()))))
     });
 
     let chapter_button = create_node_ref::<Dialog>(cx);
@@ -503,7 +496,7 @@ pub fn NovelView(cx: Scope) -> impl IntoView {
                     <Suspense fallback=|| ()>
                         <Show
                             when=move || {
-                                if let Some(ValidationResult::Ok((apub_id, _))) = valid() {
+                                if let Some(Ok((apub_id, _))) = valid() {
                                     authors().into_iter().map(|(a, _)| a).collect::<Vec<_>>().contains(&apub_id)
                                 } else {
                                     false
@@ -595,14 +588,14 @@ pub async fn get_novel(
     use activitypub_federation::config::Data;
     use leptos_actix::extract;
     use wordforge_api::{
-        api::novel::{self, GetNovelResult},
+        api::novel::{self, GetNovelError},
         DbHandle,
     };
 
     let pool = extract(cx, |pool: Data<DbHandle>| async move { pool }).await?;
 
     match novel::get_novel(uuid, &pool).await {
-        GetNovelResult::Ok(v) => {
+        Ok(v) => {
             let novel = Box::new(Novel {
                 name: v.name,
                 summary: v.summary,
@@ -624,11 +617,11 @@ pub async fn get_novel(
             });
             Ok(Ok(novel))
         }
-        GetNovelResult::PermanentRedirect(loc) => {
+        Err(GetNovelError::PermanentRedirect(loc)) => {
             leptos_actix::redirect(cx, &loc);
             Ok(Err(String::new()))
         }
-        GetNovelResult::InternalServerError(e) => Err(ServerFnError::ServerError(e)),
+        Err(GetNovelError::InternalServerError(e)) => Err(ServerFnError::ServerError(e)),
         _ => Ok(Err("NotFound".to_string())),
     }
 }

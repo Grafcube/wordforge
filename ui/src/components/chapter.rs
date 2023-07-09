@@ -198,10 +198,10 @@ pub async fn create(
         DbHandle,
     };
 
-    let (session, scheme, data) = extract(
+    let (session, state, data) = extract(
         cx,
         |session: Session, state: web::Data<AppState>, data: Data<DbHandle>| async move {
-            (session, state.scheme.clone(), data)
+            (session, state, data)
         },
     )
     .await?;
@@ -212,7 +212,7 @@ pub async fn create(
         sensitive,
     };
 
-    match new_chapter(novel, chapter, session, &data, scheme).await {
+    match new_chapter(novel, chapter, session, &data, &state.scheme).await {
         Ok(_) => Ok(()),
         Err(ChapterCreationError::InternalError(e)) => Err(ServerFnError::ServerError(e)),
         Err(ChapterCreationError::Unauthorized) => {
